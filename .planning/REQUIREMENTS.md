@@ -175,73 +175,73 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | — | Pending |
-| CORE-02 | — | Pending |
-| CORE-03 | — | Pending |
-| CORE-04 | — | Pending |
-| CORE-05 | — | Pending |
-| CORE-06 | — | Pending |
-| CORE-07 | — | Pending |
-| CORE-08 | — | Pending |
-| CORE-09 | — | Pending |
-| STRC-01 | — | Pending |
-| STRC-02 | — | Pending |
-| STRC-03 | — | Pending |
-| STRC-04 | — | Pending |
-| STRC-05 | — | Pending |
-| STRC-06 | — | Pending |
-| STRC-07 | — | Pending |
-| STRC-08 | — | Pending |
-| REG-01 | — | Pending |
-| REG-02 | — | Pending |
-| REG-03 | — | Pending |
-| REG-04 | — | Pending |
-| REG-05 | — | Pending |
-| REG-06 | — | Pending |
-| REG-07 | — | Pending |
-| OPER-01 | — | Pending |
-| OPER-02 | — | Pending |
-| OPER-03 | — | Pending |
-| OPER-04 | — | Pending |
-| OPER-05 | — | Pending |
-| OPER-06 | — | Pending |
-| OPER-07 | — | Pending |
-| OPER-08 | — | Pending |
-| FINC-01 | — | Pending |
-| FINC-02 | — | Pending |
-| FINC-03 | — | Pending |
-| FINC-04 | — | Pending |
-| FINC-05 | — | Pending |
-| FINC-06 | — | Pending |
-| FINC-07 | — | Pending |
-| FINC-08 | — | Pending |
-| FINC-09 | — | Pending |
-| FINC-10 | — | Pending |
-| FINC-11 | — | Pending |
-| FINC-12 | — | Pending |
-| FINC-13 | — | Pending |
-| FINC-14 | — | Pending |
-| FINC-15 | — | Pending |
-| FINC-16 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
-| DASH-04 | — | Pending |
-| DASH-05 | — | Pending |
-| DASH-06 | — | Pending |
-| DOCS-01 | — | Pending |
-| DOCS-02 | — | Pending |
-| DOCS-03 | — | Pending |
-| DOCS-04 | — | Pending |
-| DOCS-05 | — | Pending |
-| RPT-01 | — | Pending |
-| RPT-02 | — | Pending |
-| RPT-03 | — | Pending |
+| CORE-01 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Pending |
+| CORE-03 | Phase 1 | Pending |
+| CORE-04 | Phase 1 | Pending |
+| CORE-05 | Phase 1 | Pending |
+| CORE-06 | Phase 1 | Pending |
+| CORE-07 | Phase 1 | Pending |
+| CORE-08 | Phase 1 | Pending |
+| CORE-09 | Phase 1 | Pending |
+| STRC-01 | Phase 2 | Pending |
+| STRC-02 | Phase 2 | Pending |
+| STRC-03 | Phase 2 | Pending |
+| STRC-04 | Phase 2 | Pending |
+| STRC-05 | Phase 2 | Pending |
+| STRC-06 | Phase 2 | Pending |
+| STRC-07 | Phase 2 | Pending |
+| STRC-08 | Phase 2 | Pending |
+| REG-01 | Phase 2 | Pending |
+| REG-02 | Phase 2 | Pending |
+| REG-03 | Phase 2 | Pending |
+| REG-04 | Phase 2 | Pending |
+| REG-05 | Phase 2 | Pending |
+| REG-06 | Phase 2 | Pending |
+| REG-07 | Phase 2 | Pending |
+| OPER-01 | Phase 3 | Pending |
+| OPER-02 | Phase 3 | Pending |
+| OPER-03 | Phase 3 | Pending |
+| OPER-04 | Phase 3 | Pending |
+| OPER-05 | Phase 3 | Pending |
+| OPER-06 | Phase 3 | Pending |
+| OPER-07 | Phase 3 | Pending |
+| OPER-08 | Phase 3 | Pending |
+| FINC-01 | Phase 4 | Pending |
+| FINC-02 | Phase 4 | Pending |
+| FINC-03 | Phase 4 | Pending |
+| FINC-04 | Phase 4 | Pending |
+| FINC-05 | Phase 4 | Pending |
+| FINC-06 | Phase 4 | Pending |
+| FINC-07 | Phase 4 | Pending |
+| FINC-08 | Phase 4 | Pending |
+| FINC-09 | Phase 5 | Pending |
+| FINC-10 | Phase 5 | Pending |
+| FINC-11 | Phase 5 | Pending |
+| FINC-12 | Phase 5 | Pending |
+| FINC-13 | Phase 5 | Pending |
+| FINC-14 | Phase 5 | Pending |
+| FINC-15 | Phase 5 | Pending |
+| FINC-16 | Phase 5 | Pending |
+| DASH-01 | Phase 6 | Pending |
+| DASH-02 | Phase 6 | Pending |
+| DASH-03 | Phase 6 | Pending |
+| DASH-04 | Phase 6 | Pending |
+| DASH-05 | Phase 6 | Pending |
+| DASH-06 | Phase 6 | Pending |
+| DOCS-01 | Phase 6 | Pending |
+| DOCS-02 | Phase 6 | Pending |
+| DOCS-03 | Phase 6 | Pending |
+| DOCS-04 | Phase 6 | Pending |
+| DOCS-05 | Phase 6 | Pending |
+| RPT-01 | Phase 7 | Pending |
+| RPT-02 | Phase 7 | Pending |
+| RPT-03 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 57 total
-- Mapped to phases: 0
-- Unmapped: 57 ⚠️
+- Mapped to phases: 57
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-26*
