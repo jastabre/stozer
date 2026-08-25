@@ -29,6 +29,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **STRC-06**: Staff/coach profiles (name, title, contact, teams, license, license expiration)
 - [ ] **STRC-07**: Guardian contacts for minor players (name, relationship, phone, email, preferred contact method)
 - [ ] **STRC-08**: Sport abstraction — football and basketball from day one, extensible to other sports
+- [ ] **STRC-09**: Staff license expiry tracking with alerts
 
 ### Player Administration
 
@@ -39,6 +40,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **REG-05**: Generic athlete identifier system for federation IDs (not hardcoded to COMET)
 - [ ] **REG-06**: Basic player documents (medical, insurance, identity, custom types) with expiry tracking
 - [ ] **REG-07**: Expiration alerts for registrations and documents
+- [ ] **REG-08**: CSV/XLSX player import with column mapping, validation, and preview
+- [ ] **REG-09**: Basic player contract tracking (type, status, start/end dates, document, expiry warning)
 
 ### Daily Operations
 
@@ -99,7 +102,6 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Player Contracts
 
-- **CONT-01**: Player contract management (amateur/professional, start/end dates, files)
 - **CONT-02**: Contract annexes and notes
 - **CONT-03**: Loan and termination tracking
 - **CONT-04**: Contract expiration alerts
@@ -192,6 +194,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STRC-06 | Phase 2 | Pending |
 | STRC-07 | Phase 2 | Pending |
 | STRC-08 | Phase 2 | Pending |
+| STRC-09 | Phase 2 | Pending |
 | REG-01 | Phase 2 | Pending |
 | REG-02 | Phase 2 | Pending |
 | REG-03 | Phase 2 | Pending |
@@ -199,6 +202,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REG-05 | Phase 2 | Pending |
 | REG-06 | Phase 2 | Pending |
 | REG-07 | Phase 2 | Pending |
+| REG-08 | Phase 2 | Pending |
+| REG-09 | Phase 2 | Pending |
 | OPER-01 | Phase 3 | Pending |
 | OPER-02 | Phase 3 | Pending |
 | OPER-03 | Phase 3 | Pending |
@@ -239,8 +244,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RPT-03 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 57 total
-- Mapped to phases: 57
+- v1 requirements: 60 total
+- Mapped to phases: 60
 - Unmapped: 0 ✓
 
 ---

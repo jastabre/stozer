@@ -2,7 +2,7 @@
 
 ## Overview
 
-STOŽER development proceeds in 7 phases: a thin Foundation phase establishing multi-tenant infrastructure, followed by 6 vertical MVP slices that each deliver an end-to-end user capability. Every phase includes database, permissions, UI, mobile behavior, and tests — not separate layers. The journey goes from "club exists in the system" to "club can replace Excel, paper, and WhatsApp with Stožer."
+STOŽER development proceeds in 7 phases: a thin Foundation phase establishing multi-tenant infrastructure, followed by 6 vertical MVP slices that each deliver an end-to-end user capability. Every phase includes database, permissions, UI, mobile behavior, and tests — not separate layers. Player import, basic contracts, and staff license tracking are part of the Club & People phase. The final phase includes production readiness verification (RLS, permissions, mobile UX, PWA, security audit). The journey goes from "club exists in the system" to "club can replace Excel, paper, and WhatsApp with Stožer."
 
 ## Phases
 
@@ -35,17 +35,19 @@ Plans:
 - [ ] 01-03: TBD
 
 ### Phase 2: Club & People
-**Goal:** A club owner can set up their club structure — seasons, teams, players, staff — and see registration status with expiry alerts. This is the core domain model that everything else builds on.
+**Goal:** A club owner can set up their club structure — seasons, teams, players, staff — and see registration status with expiry alerts. Players can be imported in bulk. This is the core domain model that everything else builds on.
 **Mode:** mvp
 **Depends on**: Phase 1
-**Requirements**: STRC-01, STRC-02, STRC-03, STRC-04, STRC-05, STRC-06, STRC-07, STRC-08, REG-01, REG-02, REG-03, REG-04, REG-05, REG-06, REG-07
+**Requirements**: STRC-01, STRC-02, STRC-03, STRC-04, STRC-05, STRC-06, STRC-07, STRC-08, STRC-09, REG-01, REG-02, REG-03, REG-04, REG-05, REG-06, REG-07, REG-08, REG-09
 **Success Criteria** (what must be TRUE):
   1. Club owner can create seasons, teams, and add players with all profile fields
-  2. Players have a permanent identity that persists across seasons
-  3. Each player has a unique club athlete ID usable as payment reference
-  4. Staff profiles show assigned teams and license status
-  5. Registration status shows green/yellow/red indicators with expiry warnings
-  6. Player documents (medical, insurance) are stored with expiry tracking
+  2. Players can be imported in bulk via CSV/XLSX with column mapping and validation preview
+  3. Players have a permanent identity that persists across seasons
+  4. Each player has a unique club athlete ID usable as payment reference
+  5. Staff profiles show assigned teams and license expiry status with alerts
+  6. Registration status shows green/yellow/red indicators with expiry warnings
+  7. Basic player contracts are tracked (type, status, dates, document, expiry warning)
+  8. Player documents (medical, insurance) are stored with expiry tracking
 **Plans**: TBD
 
 Plans:
@@ -109,13 +111,13 @@ Plans:
 - [ ] 05-03: TBD
 
 ### Phase 6: Dashboard & Documents
-**Goal:** The president opens Stozer and sees everything at a glance — today's schedule, what needs attention, payment status, attendance, and useful charts. Club documents and templates are organized and accessible.
+**Goal:** The president opens Stozer and sees everything at a glance — today's schedule, what needs attention (expiring registrations, contracts, medical docs, staff licenses, unpaid fees, venue conflicts, overdue items), payment status, attendance, and useful charts. Club documents and templates are organized and accessible.
 **Mode:** mvp
 **Depends on**: Phase 3, Phase 4
 **Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05
 **Success Criteria** (what must be TRUE):
   1. Dashboard shows today's trainings, matches, and events
-  2. Requires Attention section shows expiring registrations, unpaid fees, venue conflicts
+  2. Requires Attention section shows: expiring player registrations, expiring player contracts, expiring medical/documents, expiring staff/coach licenses, unpaid youth membership fees, venue conflicts, overdue operational items
   3. Youth payment overview shows expected vs collected vs outstanding
   4. Charts show attendance trend and membership collection trend
   5. Club documents are organized in folders with template support
@@ -127,7 +129,7 @@ Plans:
 - [ ] 06-02: TBD
 
 ### Phase 7: Reporting & Polish
-**Goal:** Basic operational reports are available for attendance, payments, registrations, and documents — exportable to PDF/XLSX. Subscription locking works correctly, and the product is polished enough for real club use.
+**Goal:** Basic operational reports are available for attendance, payments, registrations, and documents — exportable to PDF/XLSX. Subscription locking works correctly. Product is verified for production readiness: responsive/mobile UX, PWA installability, cross-tenant RLS/security, role/permission enforcement, and sensitive-data exposure audit.
 **Mode:** mvp
 **Depends on**: Phase 6
 **Requirements**: RPT-01, RPT-02, RPT-03
@@ -138,6 +140,11 @@ Plans:
   4. FREE plan limits are enforced (1 club, 1 sport, 1 selection, 20 players, 2 staff)
   5. Trial flow works correctly with 14-day CLUB functionality
   6. Premium features show locked state with upgrade CTA on FREE plan
+  7. Responsive/mobile UX verified across all core workflows
+  8. PWA installability confirmed (manifest, service worker, offline basics)
+  9. Cross-tenant RLS isolation verified — Organization A cannot access Organization B data
+  10. Role/permission enforcement verified — Coach cannot see other teams' data, salary data hidden without permission
+  11. Sensitive-data exposure audit passed — no financial, medical, or contract data leaked to unauthorized roles
 **Plans**: TBD
 
 Plans:
