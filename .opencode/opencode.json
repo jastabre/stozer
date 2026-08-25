@@ -1,0 +1,23 @@
+{
+  "permission": {
+    "read": {
+      "C:/jastaBre_labs/stozer/.opencode/gsd-core/*": "allow"
+    },
+    "external_directory": {
+      "C:/jastaBre_labs/stozer/.opencode/gsd-core/*": "allow"
+    }
+  },
+  "mcp": {
+    "gsd": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "-p",
+        "@opengsd/gsd-core",
+        "gsd-mcp-server"
+      ],
+      "enabled": true
+    }
+  }
+}
