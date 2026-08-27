@@ -86,6 +86,44 @@ CREATE INDEX idx_athlete_equipment_lookup ON athlete_equipment(organization_id, 
 CREATE INDEX idx_team_equipment_lookup ON team_equipment(organization_id, team_id, season_id);
 CREATE INDEX idx_equipment_requests_status ON equipment_requests(organization_id, status);
 
+-- Composite organization keys prevent a caller from linking a row in this
+-- domain to a parent record belonging to another organization. The ordinary
+-- single-column foreign keys above preserve the normal delete behavior; these
+-- constraints enforce tenant consistency at the database boundary as well.
+ALTER TABLE teams ADD CONSTRAINT teams_id_organization_unique UNIQUE (id, organization_id);
+ALTER TABLE seasons ADD CONSTRAINT seasons_id_organization_unique UNIQUE (id, organization_id);
+ALTER TABLE athletes ADD CONSTRAINT athletes_id_organization_unique UNIQUE (id, organization_id);
+ALTER TABLE staff ADD CONSTRAINT staff_id_organization_unique UNIQUE (id, organization_id);
+ALTER TABLE equipment_types ADD CONSTRAINT equipment_types_id_organization_unique UNIQUE (id, organization_id);
+
+ALTER TABLE team_equipment_requirements
+  ADD CONSTRAINT team_equipment_requirements_team_org_fkey
+  FOREIGN KEY (organization_id, team_id) REFERENCES teams(organization_id, id),
+  ADD CONSTRAINT team_equipment_requirements_type_org_fkey
+  FOREIGN KEY (organization_id, equipment_type_id) REFERENCES equipment_types(organization_id, id);
+
+ALTER TABLE athlete_equipment
+  ADD CONSTRAINT athlete_equipment_athlete_org_fkey
+  FOREIGN KEY (organization_id, athlete_id) REFERENCES athletes(organization_id, id),
+  ADD CONSTRAINT athlete_equipment_type_org_fkey
+  FOREIGN KEY (organization_id, equipment_type_id) REFERENCES equipment_types(organization_id, id);
+
+ALTER TABLE team_equipment
+  ADD CONSTRAINT team_equipment_team_org_fkey
+  FOREIGN KEY (organization_id, team_id) REFERENCES teams(organization_id, id),
+  ADD CONSTRAINT team_equipment_staff_org_fkey
+  FOREIGN KEY (organization_id, responsible_staff_id) REFERENCES staff(organization_id, id),
+  ADD CONSTRAINT team_equipment_season_org_fkey
+  FOREIGN KEY (organization_id, season_id) REFERENCES seasons(organization_id, id);
+
+ALTER TABLE equipment_requests
+  ADD CONSTRAINT equipment_requests_team_org_fkey
+  FOREIGN KEY (organization_id, team_id) REFERENCES teams(organization_id, id),
+  ADD CONSTRAINT equipment_requests_requester_org_fkey
+  FOREIGN KEY (organization_id, requester_staff_id) REFERENCES staff(organization_id, id),
+  ADD CONSTRAINT equipment_requests_decider_org_fkey
+  FOREIGN KEY (organization_id, decided_by_staff_id) REFERENCES staff(organization_id, id);
+
 -- ============================================================
 -- ROW LEVEL SECURITY
 -- ============================================================
