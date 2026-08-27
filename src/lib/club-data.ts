@@ -65,9 +65,10 @@ export interface TeamStatusOverviewRow {
 /**
  * List every athlete with a current membership in `teamId` for `seasonId`, each
  * carrying their latest registration and latest medical valid_until (D-38/D-40).
- * "Latest" = earliest expiry date is NOT the semantics — latest record wins here
- * via valid_until DESC, first row. A missing registration/medical row must be
- * read as null (the page maps null -> red / not_recorded, never a false Valid).
+ * The current/latest row is chosen by created_at DESC, first wins (the plan's
+ * explicit resolution — may differ from an "earliest expiry" reading). A missing
+ * registration/medical row must be read as null (the page maps null -> red /
+ * not_recorded, never a false Valid).
  */
 export async function listTeamStatusOverview(
   supabase: Supabase,
@@ -104,16 +105,16 @@ export async function listTeamStatusOverview(
       .select("valid_until")
       .eq("organization_id", orgId)
       .eq("athlete_id", athlete.id)
-      .order("valid_until", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1);
 
-    // Latest medical examination by valid_until DESC (first wins).
+    // Latest medical examination by created_at DESC (first wins, per plan D-38).
     const { data: meds } = await supabase
       .from("medical_examinations")
       .select("valid_until")
       .eq("organization_id", orgId)
       .eq("athlete_id", athlete.id)
-      .order("valid_until", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1);
 
     rows.push({
@@ -131,8 +132,10 @@ export async function listTeamStatusOverview(
 }
 
 /**
- * List an athlete's registration records, most recent expiry first (D-10: the
- * current/latest record is the primary status source; past records secondary).
+ * List an athlete's registration records, most recently entered first (D-10:
+ * the current/latest record is the primary status source; past records
+ * secondary). Ordering matches the team-overview join: created_at DESC, first
+ * wins, so both views agree on which record is "current".
  */
 export async function listRegistrations(
   supabase: Supabase,
@@ -146,7 +149,7 @@ export async function listRegistrations(
     )
     .eq("organization_id", orgId)
     .eq("athlete_id", athleteId)
-    .order("valid_until", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) return [];
 
@@ -168,8 +171,10 @@ export async function listRegistrations(
 }
 
 /**
- * List an athlete's medical examinations, most recent first (D-33/D-37: latest
- * examination is the status source; older records in the background).
+ * List an athlete's medical examinations, most recently entered first
+ * (D-33/D-37: latest examination is the status source; older records in the
+ * background). Ordering matches the team-overview join (created_at DESC, first
+ * wins).
  */
 export async function listMedicalExaminations(
   supabase: Supabase,
@@ -181,7 +186,7 @@ export async function listMedicalExaminations(
     .select("*")
     .eq("organization_id", orgId)
     .eq("athlete_id", athleteId)
-    .order("valid_until", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) return [];
   return (data as unknown as MedicalExamination[]) ?? [];
