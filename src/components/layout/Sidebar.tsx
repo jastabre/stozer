@@ -1,23 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Menu, X, Home, Users, Calendar, Settings } from "lucide-react";
+import { createBrowserClient } from "@/lib/supabase/browser";
+import { getNavConfig, type NavItem as NavItemType } from "@/lib/rbac";
+import type { AppRole } from "@/types/database";
+import { Menu, X } from "lucide-react";
+import { NavItem } from "./NavItem";
 import { UserMenu } from "./UserMenu";
 
 export function Sidebar({ orgId: _orgId }: { orgId: string }) {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
+  const [navItems, setNavItems] = useState<NavItemType[]>([]);
   const t = useTranslations("navigation");
 
-  const NAV_ITEMS = [
-    { label: t("home"), href: "/dashboard", icon: Home },
-    { label: t("teams"), href: "/teams", icon: Users },
-    { label: t("calendar"), href: "/calendar", icon: Calendar },
-    { label: t("settings"), href: "/settings", icon: Settings },
-  ];
+  useEffect(() => {
+    async function loadRole() {
+      const supabase = createBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const role = (user?.app_metadata?.user_role as string) || "club_president";
+      setNavItems(getNavConfig(role as AppRole));
+    }
+    loadRole();
+  }, []);
 
   return (
     <>
@@ -25,7 +32,7 @@ export function Sidebar({ orgId: _orgId }: { orgId: string }) {
       <button
         onClick={() => setOpen(true)}
         className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-lg bg-card shadow-md md:hidden"
-        aria-label="Otvori meni"
+        aria-label={t("home")}
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -56,24 +63,14 @@ export function Sidebar({ orgId: _orgId }: { orgId: string }) {
         </div>
 
         <nav className="flex-1 space-y-1 p-3">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname?.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={`/sr${item.href}`}
-                onClick={() => setOpen(false)}
-                className={`flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent"
-                }`}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            );
-          })}
+          {navItems.map((item) => (
+            <NavItem
+              key={item.href}
+              label={item.label}
+              href={item.href}
+              icon={item.icon}
+            />
+          ))}
         </nav>
 
         <div className="border-t border-border p-3">
