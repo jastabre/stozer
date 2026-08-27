@@ -607,6 +607,59 @@ export interface Database {
           }
         ];
       };
+      import_jobs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          created_by: string | null;
+          filename: string;
+          status: string;
+          total_rows: number;
+          valid_rows: number;
+          error_rows: number;
+          duplicated_rows: number;
+          error_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          created_by?: string | null;
+          filename: string;
+          status?: string;
+          total_rows?: number;
+          valid_rows?: number;
+          error_rows?: number;
+          duplicated_rows?: number;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          created_by?: string | null;
+          filename?: string;
+          status?: string;
+          total_rows?: number;
+          valid_rows?: number;
+          error_rows?: number;
+          duplicated_rows?: number;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "import_jobs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {
