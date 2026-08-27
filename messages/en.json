@@ -223,6 +223,8 @@
       "range": "from {from} to {to}",
       "edit": "Edit",
       "delete": "Delete",
+      "document": "Registration document",
+      "noDocument": "No linked document",
       "tones": {
         "green": "Registered",
         "yellow": "Expiring soon",
@@ -249,6 +251,8 @@
       "range": "Examined {from} — valid until {to}",
       "edit": "Edit",
       "delete": "Delete",
+      "document": "Certificate document",
+      "noDocument": "No linked document",
       "tones": {
         "not_recorded": "Not recorded",
         "valid": "Valid",
@@ -588,6 +592,8 @@
     "all": "All",
     "type": "Type",
     "owner": "Owner",
+    "athlete": "Athlete",
+    "staff": "Staff",
     "file": "File",
     "expiry": "Expiry",
     "actions": "Actions",

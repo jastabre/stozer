@@ -17,6 +17,10 @@ const medicalSchema = z
     examined_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum mora biti YYYY-MM-DD"),
     valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum mora biti YYYY-MM-DD"),
     note: z.string().max(500).optional(),
+    document_id: z.preprocess(
+      (value) => (value === "" ? null : value),
+      z.string().uuid().nullable().optional()
+    ),
   })
   .refine((v) => v.valid_until >= v.examined_on, {
     message: "Datum isteka mora biti posle datuma pregleda",
@@ -44,6 +48,18 @@ export async function saveMedicalExamination(formData: FormData) {
   const { id, ...fields } = parsed.data;
 
   const supabase = await createServerClient();
+  if (fields.document_id) {
+    const { data: document, error: documentError } = await supabase
+      .from("documents")
+      .select("id")
+      .eq("id", fields.document_id)
+      .eq("organization_id", org.organizationId)
+      .eq("owner_type", "athlete")
+      .eq("owner_id", athleteId)
+      .eq("doc_type", "medical")
+      .maybeSingle();
+    if (documentError || !document) throw new Error("Medicinski dokument nije pronađen");
+  }
 
   if (id) {
     const { error } = await supabase
@@ -52,6 +68,7 @@ export async function saveMedicalExamination(formData: FormData) {
         examined_on: fields.examined_on,
         valid_until: fields.valid_until,
         note: fields.note ?? null,
+        document_id: fields.document_id ?? null,
       })
       .eq("id", id)
       .eq("organization_id", org.organizationId)
@@ -65,6 +82,7 @@ export async function saveMedicalExamination(formData: FormData) {
       examined_on: fields.examined_on,
       valid_until: fields.valid_until,
       note: fields.note ?? null,
+      document_id: fields.document_id ?? null,
     });
     if (error) throw new Error("Greška pri upisu pregleda: " + error.message);
   }

@@ -7,6 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import {
   listRegistrations,
   listSeasons,
+  listDocuments,
   getOrganizationSettings,
 } from "@/lib/club-data";
 import {
@@ -39,10 +40,13 @@ export default async function PlayerRegistrationsPage({
   ]);
   if (!canView) notFound();
 
-  const [registrations, settings, seasons] = await Promise.all([
+  const [registrations, settings, seasons, documents] = await Promise.all([
     listRegistrations(supabase, org.organizationId, id),
     getOrganizationSettings(supabase, org.organizationId),
     listSeasons(supabase, org.organizationId),
+    hasPermission("documents.view").then((allowed) =>
+      allowed ? listDocuments(supabase, org.organizationId, "athlete", id) : []
+    ),
   ]);
 
   // A backfill/trigger guarantees a settings row, but tolerate absence with the
@@ -153,6 +157,13 @@ export default async function PlayerRegistrationsPage({
                 ))}
               </select>
             </label>
+              <label className="flex flex-col text-xs text-muted-foreground">
+                {t("document")}
+                <select name="document_id" className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground">
+                  <option value="">{t("noDocument")}</option>
+                  {documents.filter((document) => document.doc_type === "registration").map((document) => <option key={document.id} value={document.id}>{document.filename}</option>)}
+                </select>
+              </label>
             <div className="flex items-end">
               <button
                 type="submit"
@@ -247,8 +258,8 @@ export default async function PlayerRegistrationsPage({
                               />
                             </label>
                           </div>
-                          <select
-                            name="season_id"
+                           <select
+                             name="season_id"
                             defaultValue={r.season_id ?? ""}
                             className="w-full rounded-lg border px-2 py-1 text-sm"
                           >
@@ -258,7 +269,15 @@ export default async function PlayerRegistrationsPage({
                                 {s.name}
                               </option>
                             ))}
-                          </select>
+                           </select>
+                           <select
+                             name="document_id"
+                             defaultValue={r.document_id ?? ""}
+                             className="w-full rounded-lg border px-2 py-1 text-sm"
+                           >
+                             <option value="">{t("noDocument")}</option>
+                             {documents.filter((document) => document.doc_type === "registration").map((document) => <option key={document.id} value={document.id}>{document.filename}</option>)}
+                           </select>
                           <button
                             type="submit"
                             className="w-full rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground"

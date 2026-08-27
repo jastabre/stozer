@@ -15,6 +15,10 @@ const registrationSchema = z
     federation: z.string().max(100).optional(),
     identifier: z.string().max(100).optional(),
     season_id: z.string().uuid().nullable().optional(),
+    document_id: z.preprocess(
+      (value) => (value === "" ? null : value),
+      z.string().uuid().nullable().optional()
+    ),
     valid_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum mora biti YYYY-MM-DD"),
     valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum mora biti YYYY-MM-DD"),
   })
@@ -44,6 +48,18 @@ export async function saveRegistration(formData: FormData) {
   const { id, ...fields } = parsed.data;
 
   const supabase = await createServerClient();
+  if (fields.document_id) {
+    const { data: document, error: documentError } = await supabase
+      .from("documents")
+      .select("id")
+      .eq("id", fields.document_id)
+      .eq("organization_id", org.organizationId)
+      .eq("owner_type", "athlete")
+      .eq("owner_id", athleteId)
+      .eq("doc_type", "registration")
+      .maybeSingle();
+    if (documentError || !document) throw new Error("Dokument registracije nije pronađen");
+  }
   const seasonValue =
     fields.season_id && fields.season_id.trim() !== ""
       ? fields.season_id
@@ -58,6 +74,7 @@ export async function saveRegistration(formData: FormData) {
         season_id: seasonValue,
         valid_from: fields.valid_from,
         valid_until: fields.valid_until,
+        document_id: fields.document_id ?? null,
       })
       .eq("id", id)
       .eq("organization_id", org.organizationId)
@@ -72,6 +89,7 @@ export async function saveRegistration(formData: FormData) {
       identifier: fields.identifier ?? null,
       valid_from: fields.valid_from,
       valid_until: fields.valid_until,
+      document_id: fields.document_id ?? null,
     });
     if (error) throw new Error("Greška pri upisu registracije: " + error.message);
   }

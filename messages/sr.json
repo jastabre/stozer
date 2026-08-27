@@ -223,6 +223,8 @@
       "range": "od {from} do {to}",
       "edit": "Izmeni",
       "delete": "Obriši",
+      "document": "Dokument registracije",
+      "noDocument": "Bez povezanog dokumenta",
       "tones": {
         "green": "Registrovan",
         "yellow": "Ističe uskoro",
@@ -249,6 +251,8 @@
       "range": "Pregled {from} — važi do {to}",
       "edit": "Izmeni",
       "delete": "Obriši",
+      "document": "Dokument potvrde",
+      "noDocument": "Bez povezanog dokumenta",
       "tones": {
         "not_recorded": "Nije evidentirano",
         "valid": "Važeći",
@@ -588,6 +592,8 @@
     "all": "Svi",
     "type": "Vrsta",
     "owner": "Vlasnik",
+    "athlete": "Igrač",
+    "staff": "Osoblje",
     "file": "Datoteka",
     "expiry": "Istek",
     "actions": "Radnje",

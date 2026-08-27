@@ -7,6 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import {
   listMedicalExaminations,
   getOrganizationSettings,
+  listDocuments,
 } from "@/lib/club-data";
 import {
   medicalStatus,
@@ -45,9 +46,12 @@ export default async function PlayerMedicalPage({
   ]);
   if (!canViewMedical && !canViewReg) notFound();
 
-  const [examinations, settings] = await Promise.all([
+  const [examinations, settings, documents] = await Promise.all([
     listMedicalExaminations(supabase, org.organizationId, id),
     getOrganizationSettings(supabase, org.organizationId),
+    hasPermission("documents.view").then((allowed) =>
+      allowed ? listDocuments(supabase, org.organizationId, "athlete", id) : []
+    ),
   ]);
 
   const threshold =
@@ -144,6 +148,13 @@ export default async function PlayerMedicalPage({
                 className="mt-1 rounded-lg border px-3 py-2 text-sm"
               />
             </label>
+            <label className="flex flex-col text-xs text-muted-foreground sm:col-span-2">
+              {t("document")}
+              <select name="document_id" className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground">
+                <option value="">{t("noDocument")}</option>
+                {documents.filter((document) => document.doc_type === "medical").map((document) => <option key={document.id} value={document.id}>{document.filename}</option>)}
+              </select>
+            </label>
             <div className="flex items-end sm:col-span-2">
               <button
                 type="submit"
@@ -229,6 +240,10 @@ export default async function PlayerMedicalPage({
                             placeholder={t("notePlaceholder")}
                             className="w-full rounded-lg border px-2 py-1 text-sm"
                           />
+                          <select name="document_id" defaultValue={e.document_id ?? ""} className="w-full rounded-lg border px-2 py-1 text-sm">
+                            <option value="">{t("noDocument")}</option>
+                            {documents.filter((document) => document.doc_type === "medical").map((document) => <option key={document.id} value={document.id}>{document.filename}</option>)}
+                          </select>
                           <button
                             type="submit"
                             className="w-full rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground"
