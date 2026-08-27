@@ -615,6 +615,229 @@ export interface Database {
           }
         ];
       };
+      staff: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string | null;
+          role: AppRole | null;
+          first_name: string;
+          last_name: string;
+          photo_url: string | null;
+          phone: string | null;
+          email: string | null;
+          title: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id?: string | null;
+          role?: AppRole | null;
+          first_name: string;
+          last_name: string;
+          photo_url?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          title?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string | null;
+          role?: AppRole | null;
+          first_name?: string;
+          last_name?: string;
+          photo_url?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          title?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      staff_teams: {
+        Row: {
+          id: string;
+          organization_id: string;
+          staff_id: string;
+          team_id: string;
+          season_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          staff_id: string;
+          team_id: string;
+          season_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          staff_id?: string;
+          team_id?: string;
+          season_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_teams_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_teams_staff_id_fkey";
+            columns: ["staff_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_teams_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_teams_season_id_fkey";
+            columns: ["season_id"];
+            isOneToOne: false;
+            referencedRelation: "seasons";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      staff_licenses: {
+        Row: {
+          id: string;
+          organization_id: string;
+          staff_id: string;
+          license_type: string;
+          license_number: string | null;
+          valid_until: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          staff_id: string;
+          license_type: string;
+          license_number?: string | null;
+          valid_until: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          staff_id?: string;
+          license_type?: string;
+          license_number?: string | null;
+          valid_until?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_licenses_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_licenses_staff_id_fkey";
+            columns: ["staff_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      guardians: {
+        Row: {
+          id: string;
+          organization_id: string;
+          athlete_id: string;
+          full_name: string;
+          relationship: string;
+          phone: string | null;
+          email: string | null;
+          preferred_contact: "phone" | "email" | "sms" | "other" | null;
+          is_primary: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          athlete_id: string;
+          full_name: string;
+          relationship: string;
+          phone?: string | null;
+          email?: string | null;
+          preferred_contact?: "phone" | "email" | "sms" | "other" | null;
+          is_primary?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          athlete_id?: string;
+          full_name?: string;
+          relationship?: string;
+          phone?: string | null;
+          email?: string | null;
+          preferred_contact?: "phone" | "email" | "sms" | "other" | null;
+          is_primary?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "guardians_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "guardians_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "athletes";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       import_jobs: {
         Row: {
           id: string;
