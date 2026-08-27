@@ -257,6 +257,94 @@
       }
     }
   },
+  "import": {
+    "eyebrow": "Alati za spisak",
+    "title": "Uvoz igrača",
+    "description": "Prenesite postojeći spisak u STOŽER uz pregled pre nego što se bilo šta sačuva.",
+    "loading": "Priprema uvoza...",
+    "back": "Nazad",
+    "next": "Nastavi",
+    "errors": {
+      "generic": "Došlo je do greške. Pokušajte ponovo."
+    },
+    "gate": {
+      "noPermission": "Nemate dozvolu za uvoz igrača.",
+      "limitTitle": "Dostignut je limit igrača",
+      "limitDescription": "Vaš plan ima {limit} mesta za igrače, a klub već ima {count}. Nadogradite plan da biste uvezli još igrača."
+    },
+    "steps": {
+      "label": "Koraci uvoza",
+      "upload": "Otpremi",
+      "mapping": "Mapiranje kolona",
+      "preview": "Pregled",
+      "progress": "Uvoz"
+    },
+    "fields": {
+      "club_athlete_number": "Klupski ID igrača",
+      "first_name": "Ime",
+      "last_name": "Prezime",
+      "birth_date": "Datum rođenja",
+      "gender": "Pol",
+      "nationality": "Nacionalnost",
+      "position": "Pozicija",
+      "federation_id": "Federativni / registarski ID",
+      "team": "Tim",
+      "jersey_number": "Broj dresa",
+      "phone": "Telefon",
+      "guardian_name": "Ime staratelja",
+      "guardian_phone": "Telefon staratelja",
+      "guardian_relationship": "Odnos sa starateljem",
+      "unmapped": "Ne uvozi"
+    },
+    "upload": {
+      "title": "Otpremite spisak igrača",
+      "description": "CSV i XLSX datoteke se bezbedno obrađuju na serveru. U ovom koraku se ne kreira nijedan igrač.",
+      "file": "Datoteka spiska",
+      "size": "CSV ili XLSX · najviše 2 MB",
+      "submit": "Pročitaj datoteku",
+      "working": "Čitanje..."
+    },
+    "mapping": {
+      "title": "Mapirajte kolone",
+      "description": "Proverite automatsko mapiranje. Obavezna polja moraju biti mapirana pre pregleda.",
+      "target": "Ciljno polje za",
+      "missingRequired": "Mapirajte obavezna polja: {fields}"
+    },
+    "preview": {
+      "title": "Pregled pre uvoza",
+      "description": "Prikazano je prvih 50 redova od ukupno {count}. Ispravite sve greške pre uvoza.",
+      "valid": "{count} ispravnih",
+      "errors": "{count} grešaka",
+      "duplicates": "{count} duplikata",
+      "row": "Red",
+      "status": "Status",
+      "action": "Radnja za duplikat",
+      "validRow": "Ispravno",
+      "error": "Greška",
+      "duplicate": "Duplikat",
+      "skip": "Preskoči",
+      "update": "Ažuriraj postojeći",
+      "create": "Kreiraj novi",
+      "fixErrors": "Uvoz je onemogućen dok se ne isprave sve greške u redovima.",
+      "import": "Uvezi igrače"
+    },
+    "progress": {
+      "title": "Napredak uvoza",
+      "importing": "Uvoz se obrađuje na serveru...",
+      "done": "Uvoz je završen",
+      "failed": "Uvoz je zaustavljen",
+      "total": "Ukupno redova",
+      "validCount": "Uvezeno",
+      "errorCount": "Greške",
+      "duplicateCount": "Pronađeni duplikati",
+      "processed": "Obrađeno {count} od {total}",
+      "batchErrors": "{count} redova nije moguće uvesti.",
+      "pollTimeout": "Praćenje napretka je isteklo. Proverite status uvoza i pokušajte ponovo.",
+      "noProgress": "Uvoz nije napredovao. Pokušajte ponovo.",
+      "playersLink": "Otvori igrače",
+      "tryAgain": "Nazad na pregled"
+    }
+  },
   "subscription": {
     "free": "Free",
     "club": "Club",

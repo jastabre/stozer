@@ -257,6 +257,94 @@
       }
     }
   },
+  "import": {
+    "eyebrow": "Roster tools",
+    "title": "Import players",
+    "description": "Bring an existing roster into STOŽER with a review before anything is written.",
+    "loading": "Preparing import...",
+    "back": "Back",
+    "next": "Continue",
+    "errors": {
+      "generic": "Something went wrong. Try again."
+    },
+    "gate": {
+      "noPermission": "You do not have permission to import players.",
+      "limitTitle": "Player limit reached",
+      "limitDescription": "Your plan contains {limit} player slots and this club already has {count}. Upgrade to import more players."
+    },
+    "steps": {
+      "label": "Import steps",
+      "upload": "Upload",
+      "mapping": "Map columns",
+      "preview": "Review",
+      "progress": "Import"
+    },
+    "fields": {
+      "club_athlete_number": "Club athlete ID",
+      "first_name": "First name",
+      "last_name": "Last name",
+      "birth_date": "Birth date",
+      "gender": "Gender",
+      "nationality": "Nationality",
+      "position": "Position",
+      "federation_id": "Federation / registration ID",
+      "team": "Team",
+      "jersey_number": "Jersey number",
+      "phone": "Phone",
+      "guardian_name": "Guardian name",
+      "guardian_phone": "Guardian phone",
+      "guardian_relationship": "Guardian relationship",
+      "unmapped": "Do not import"
+    },
+    "upload": {
+      "title": "Upload a roster file",
+      "description": "CSV and XLSX files are parsed securely on the server. No player is created at this step.",
+      "file": "Roster file",
+      "size": "CSV or XLSX · maximum 2 MB",
+      "submit": "Read file",
+      "working": "Reading..."
+    },
+    "mapping": {
+      "title": "Map your columns",
+      "description": "Check the automatic matches. Required fields must be mapped before preview.",
+      "target": "Target field for",
+      "missingRequired": "Map these required fields: {fields}"
+    },
+    "preview": {
+      "title": "Review before import",
+      "description": "Showing the first 50 rows of {count}. Fix every error before importing.",
+      "valid": "{count} valid",
+      "errors": "{count} errors",
+      "duplicates": "{count} duplicates",
+      "row": "Row",
+      "status": "Status",
+      "action": "Duplicate action",
+      "validRow": "Valid",
+      "error": "Error",
+      "duplicate": "Duplicate",
+      "skip": "Skip",
+      "update": "Update existing",
+      "create": "Create new",
+      "fixErrors": "Import is disabled until all row errors are fixed.",
+      "import": "Import players"
+    },
+    "progress": {
+      "title": "Import progress",
+      "importing": "Importing on the server...",
+      "done": "Import complete",
+      "failed": "Import stopped",
+      "total": "Total rows",
+      "validCount": "Imported",
+      "errorCount": "Errors",
+      "duplicateCount": "Duplicates found",
+      "processed": "Processed {count} of {total}",
+      "batchErrors": "{count} rows could not be imported.",
+      "pollTimeout": "Progress polling timed out. Check the import status and try again.",
+      "noProgress": "The import did not advance. Try again.",
+      "playersLink": "Open players",
+      "tryAgain": "Return to review"
+    }
+  },
   "subscription": {
     "free": "Free",
     "club": "Club",
