@@ -315,6 +315,34 @@
       "category": "Kategorija",
       "sport": "Sport",
       "athletes": "Igraca"
+    },
+    "overview": {
+      "title": "Pregled registracija i medicinskih statusa",
+      "back": "Nazad na timove",
+      "season": "Sezona",
+      "noSeason": "Bez sezone",
+      "noActiveSeason": "Još nema aktivne sezone za ovaj klub.",
+      "filterReg": "Registracija",
+      "filterMed": "Medicina",
+      "all": "Svi",
+      "go": "Primeni",
+      "empty": "Nema igrača za izabrane filtere.",
+      "table": {
+        "name": "Ime",
+        "clubId": "ID",
+        "jersey": "Dres",
+        "registration": "Registracija",
+        "medical": "Medicina"
+      }
     }
+  },
+  "club": {
+    "title": "Podešavanja kluba",
+    "thresholdTitle": "Prag upozorenja za registraciju i medicinske preglede",
+    "thresholdDescription": "Koliko dana pre isteka registracije ili medicinske podobnosti status treba da bude prikazan žuto (ističe uskoro)?",
+    "thresholdLabel": "Dana do isteka",
+    "save": "Sačuvaj",
+    "overviewTitle": "Statusi timova",
+    "overviewDescription": "Treneri mogu videti registracioni i medicinski status svih igrača iz pregleda tima (bez otvaranja profila). Medicinski podaci su ograničeni na administrativnu podobnost."
   }
 }

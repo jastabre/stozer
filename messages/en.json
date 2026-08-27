@@ -315,6 +315,34 @@
       "category": "Category",
       "sport": "Sport",
       "athletes": "Athletes"
+    },
+    "overview": {
+      "title": "Registrations & Medical Overview",
+      "back": "Back to teams",
+      "season": "Season",
+      "noSeason": "No season",
+      "noActiveSeason": "No active season for this club yet.",
+      "filterReg": "Registration",
+      "filterMed": "Medical",
+      "all": "All",
+      "go": "Apply",
+      "empty": "No athletes found for the selected filters.",
+      "table": {
+        "name": "Name",
+        "clubId": "Club ID",
+        "jersey": "Jersey",
+        "registration": "Registration",
+        "medical": "Medical"
+      }
     }
+  },
+  "club": {
+    "title": "Club settings",
+    "thresholdTitle": "Registration & medical warning threshold",
+    "thresholdDescription": "How many days before a registration or medical clearance expires should it be shown in yellow (expiring soon)?",
+    "thresholdLabel": "Days before expiry",
+    "save": "Save",
+    "overviewTitle": "Team statuses",
+    "overviewDescription": "Coaches can view the registration and medical status of every athlete from the team overview (no need to open each profile). Medical data is limited to administrative clearance only."
   }
 }

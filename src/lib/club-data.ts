@@ -46,6 +46,91 @@ export interface OrganizationSettings {
 }
 
 /**
+ * One athlete's row in the team-level registration/medical overview (D-38).
+ * registration/medical are NEVER merged (D-40) — each carries its own derived
+ * tone. valid_until values are the latest records by valid_until DESC (first
+ * wins); the page derives the green/yellow/red + medical tones with the org
+ * threshold and applies the filters.
+ */
+export interface TeamStatusOverviewRow {
+  athleteId: string;
+  first_name: string;
+  last_name: string;
+  club_athlete_number: number;
+  jersey_number: number | null;
+  latestRegistrationValidUntil: string | null;
+  latestMedicalValidUntil: string | null;
+}
+
+/**
+ * List every athlete with a current membership in `teamId` for `seasonId`, each
+ * carrying their latest registration and latest medical valid_until (D-38/D-40).
+ * "Latest" = earliest expiry date is NOT the semantics — latest record wins here
+ * via valid_until DESC, first row. A missing registration/medical row must be
+ * read as null (the page maps null -> red / not_recorded, never a false Valid).
+ */
+export async function listTeamStatusOverview(
+  supabase: Supabase,
+  orgId: string,
+  teamId: string,
+  seasonId: string
+): Promise<TeamStatusOverviewRow[]> {
+  const { data: memberships, error: mError } = await supabase
+    .from("seasonal_memberships")
+    .select(
+      "athlete_id, jersey_number, athletes(id, organization_id, first_name, last_name, club_athlete_number)"
+    )
+    .eq("organization_id", orgId)
+    .eq("team_id", teamId)
+    .eq("season_id", seasonId);
+
+  if (mError || !memberships) return [];
+
+  const rows: TeamStatusOverviewRow[] = [];
+
+  for (const m of memberships) {
+    const athlete = (m.athletes as unknown as {
+      id: string;
+      organization_id: string;
+      first_name: string;
+      last_name: string;
+      club_athlete_number: number;
+    }) ?? null;
+    if (!athlete || athlete.organization_id !== orgId) continue;
+
+    // Latest registration by valid_until DESC (first wins).
+    const { data: regs } = await supabase
+      .from("registrations")
+      .select("valid_until")
+      .eq("organization_id", orgId)
+      .eq("athlete_id", athlete.id)
+      .order("valid_until", { ascending: false })
+      .limit(1);
+
+    // Latest medical examination by valid_until DESC (first wins).
+    const { data: meds } = await supabase
+      .from("medical_examinations")
+      .select("valid_until")
+      .eq("organization_id", orgId)
+      .eq("athlete_id", athlete.id)
+      .order("valid_until", { ascending: false })
+      .limit(1);
+
+    rows.push({
+      athleteId: athlete.id,
+      first_name: athlete.first_name,
+      last_name: athlete.last_name,
+      club_athlete_number: athlete.club_athlete_number,
+      jersey_number: m.jersey_number,
+      latestRegistrationValidUntil: regs?.[0]?.valid_until ?? null,
+      latestMedicalValidUntil: meds?.[0]?.valid_until ?? null,
+    });
+  }
+
+  return rows;
+}
+
+/**
  * List an athlete's registration records, most recent expiry first (D-10: the
  * current/latest record is the primary status source; past records secondary).
  */

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { requireOrganization, hasPermission } from "@/lib/organization";
 import { createServerClient } from "@/lib/supabase/server";
@@ -70,7 +71,14 @@ export default async function TeamsPage() {
             <tbody>
               {teams.map((team) => (
                 <tr key={team.id} className="border-t border-border">
-                  <td className="px-4 py-2 font-medium">{team.name}</td>
+                  <td className="px-4 py-2 font-medium">
+                    <Link
+                      href={`/teams/${team.id}/registrations`}
+                      className="hover:text-primary"
+                    >
+                      {team.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2">{t(`categories.${team.category}`)}</td>
                   <td className="px-4 py-2">{team.sport}</td>
                   <td className="px-4 py-2">{team.athlete_count}</td>
