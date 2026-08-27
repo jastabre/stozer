@@ -12,6 +12,7 @@ import {
   createAthlete,
   countAthletes,
   getActiveSeason,
+  updateAthleteFederationId,
 } from "@/lib/club-data";
 import { createPlayerSchema } from "@/schemas/player";
 
@@ -73,4 +74,39 @@ export async function createPlayer(formData: FormData) {
 
   revalidatePath("/players");
   redirect("/players");
+}
+
+/**
+ * Update an athlete's free-text Federation / Registration ID (D-06).
+ * Requires athletes.edit. The value is reference-only — never validated or
+ * interpreted, and never related to the club athlete ID (REG-05).
+ */
+export async function updatePlayerFederationId(formData: FormData) {
+  const org = await requireOrganization();
+  const allowed = await hasPermission("athletes.edit");
+  if (!allowed) {
+    throw new Error("Nemate dozvolu za izmenu igrača");
+  }
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) throw new Error("Nedostaje id igrača");
+
+  const raw = formData.get("federation_id");
+  const federationId =
+    typeof raw === "string" && raw.trim() !== "" ? raw.trim() : null;
+
+  const supabase = await createServerClient();
+  const result = await updateAthleteFederationId(
+    supabase,
+    org.organizationId,
+    id,
+    federationId
+  );
+
+  if ("error" in result) {
+    throw new Error("Greška pri čuvanju identifikacionog ID: " + result.error);
+  }
+
+  revalidatePath(`/players/${id}`);
+  redirect(`/players/${id}`);
 }

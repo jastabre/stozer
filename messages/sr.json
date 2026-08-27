@@ -166,6 +166,41 @@
     "empty": {
       "title": "Nema igraca",
       "description": "Dodajte prvog igraca kako biste zapoceli svoj spisak."
+    },
+    "profile": {
+      "back": "Nazad na igrace",
+      "clubId": "Identifikacioni broj igraca",
+      "clubIdNote": "Vas poziv na broj za placanje. Nikada se ne dodeljuje ponovo.",
+      "identity": "Identitet",
+      "birthDate": "Datum rodjenja",
+      "gender": "Pol",
+      "genders": {
+        "male": "Muski",
+        "female": "Zenski",
+        "other": "Ostalo"
+      },
+      "notSet": "Nije navedeno",
+      "nationality": "Nacionalnost",
+      "position": "Pozicija",
+      "federationId": "Federativni / registarski ID",
+      "federationIdNote": "Samo referenca — Stozer ne validira niti tumaci ovu vrednost.",
+      "federationIdPlaceholder": "Opciona referenca",
+      "save": "Sacuvaj",
+      "memberships": "Clanstva po sezonama",
+      "team": "Tim",
+      "jersey": "Dres",
+      "season": "Sezona",
+      "noMembership": "Nema clanstva za tekuci sezonu.",
+      "pastMemberships": "Prethodna clanstva",
+      "sectionsLabel": "Vise",
+      "sections": {
+        "registrations": "Registracije",
+        "medical": "Medicina",
+        "guardians": "Stari",
+        "documents": "Dokumenti",
+        "contracts": "Ugovori",
+        "equipment": "Oprema"
+      }
     }
   },
   "subscription": {

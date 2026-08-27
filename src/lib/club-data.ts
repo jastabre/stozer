@@ -153,6 +153,106 @@ export async function listAthletesWithCurrentMembership(
 }
 
 /**
+ * A single athlete with their full membership history (all seasons), used by
+ * the profile page (D-04: current season primary, past seasons collapsed).
+ */
+export interface AthleteDetail {
+  id: string;
+  organization_id: string;
+  first_name: string;
+  last_name: string;
+  birth_date: string;
+  gender: string | null;
+  nationality: string | null;
+  position: string | null;
+  photo_url: string | null;
+  federation_id: string | null;
+  club_athlete_number: number;
+  memberships: {
+    seasonId: string;
+    seasonName: string;
+    isActive: boolean;
+    teamId: string;
+    teamName: string;
+    jerseyNumber: number | null;
+    status: string;
+  }[];
+}
+
+/**
+ * Fetch one athlete scoped to the org, with memberships across all seasons
+ * (each carrying its season + team). Returns null when missing or not in org.
+ */
+export async function getAthleteWithMemberships(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string
+): Promise<AthleteDetail | null> {
+  const { data, error } = await supabase
+    .from("athletes")
+    .select(
+      "id, organization_id, first_name, last_name, birth_date, gender, nationality, position, photo_url, federation_id, club_athlete_number, seasonal_memberships(season_id, team_id, jersey_number, status, seasons(name, is_active), teams(name))"
+    )
+    .eq("id", athleteId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const memberships = (data.seasonal_memberships as unknown as Array<{
+    season_id: string;
+    team_id: string;
+    jersey_number: number | null;
+    status: string;
+    seasons: { name: string; is_active: boolean } | null;
+    teams: { name: string } | null;
+  }>) || [];
+
+  return {
+    id: data.id,
+    organization_id: data.organization_id,
+    first_name: data.first_name,
+    last_name: data.last_name,
+    birth_date: data.birth_date,
+    gender: data.gender,
+    nationality: data.nationality,
+    position: data.position,
+    photo_url: data.photo_url,
+    federation_id: data.federation_id,
+    club_athlete_number: data.club_athlete_number,
+    memberships: memberships.map((m) => ({
+      seasonId: m.season_id,
+      seasonName: m.seasons?.name ?? "",
+      isActive: m.seasons?.is_active ?? false,
+      teamId: m.team_id,
+      teamName: m.teams?.name ?? "",
+      jerseyNumber: m.jersey_number,
+      status: m.status,
+    })),
+  };
+}
+
+/**
+ * Update an athlete's free-text Federation / Registration ID (D-06). The value
+ * is reference-only: never validated or interpreted here.
+ */
+export async function updateAthleteFederationId(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string,
+  federationId: string | null
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("athletes")
+    .update({ federation_id: federationId })
+    .eq("id", athleteId)
+    .eq("organization_id", orgId);
+
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+/**
  * Create an athlete with an auto-assigned club athlete ID.
  * 1. Claim the next counter value atomically in the DB (Pattern 3, D-05).
  * 2. Insert the athlete with that number.

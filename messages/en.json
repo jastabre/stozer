@@ -166,6 +166,41 @@
     "empty": {
       "title": "No players",
       "description": "Add your first player to start building your roster."
+    },
+    "profile": {
+      "back": "Back to players",
+      "clubId": "Club athlete ID",
+      "clubIdNote": "Your payment reference (poziv na broj). Never reassigned.",
+      "identity": "Identity",
+      "birthDate": "Birth date",
+      "gender": "Gender",
+      "genders": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "notSet": "Not set",
+      "nationality": "Nationality",
+      "position": "Position",
+      "federationId": "Federation / Registration ID",
+      "federationIdNote": "Reference only — Stožer does not validate or interpret this value.",
+      "federationIdPlaceholder": "Optional reference",
+      "save": "Save",
+      "memberships": "Season memberships",
+      "team": "Team",
+      "jersey": "Jersey",
+      "season": "Season",
+      "noMembership": "No membership for the current season.",
+      "pastMemberships": "Past memberships",
+      "sectionsLabel": "More",
+      "sections": {
+        "registrations": "Registrations",
+        "medical": "Medical",
+        "guardians": "Guardians",
+        "documents": "Documents",
+        "contracts": "Contracts",
+        "equipment": "Equipment"
+      }
     }
   },
   "subscription": {
