@@ -436,11 +436,11 @@ const clubAthleteNumber = `C${String(counter).padStart(4, '0')}`;      // C0001
 | A4 | Wizard upload fits 4 MB bodySizeLimit for FREE plan (20 players) | Pattern 5 | Low — files are a few hundred KB; route-handler fallback exists |
 | A5 | Threshold default 30 days chosen per D-12 example | Standard Stack/pitfalls | Low — org setting, configurable |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Storage bucket topology** — single `club-documents` bucket with org folders (recommended, matches `foldername()[1]` scoping + brief §62 paths) vs one bucket per org. Recommendation: single bucket + folder scoping; per-org buckets create RLS/management overhead for zero isolation gain.
-2. **Import jobs table** — persistent `import_jobs` table (resumable, auditable) vs transient progress state (simpler). Recommendation: lightweight `import_jobs` row only for row counts/status — matches D-13 progress feedback and enables retry.
-3. **Equipment permission granularity** — D-23 minimal: `equipment.view` + `equipment.report` + `equipment.manage` (recommended) vs single `equipment.manage`. Recommendation: three values as D-23 wording.
+1. **Storage bucket topology** — single `club-documents` bucket with org folders (recommended, matches `foldername()[1]` scoping + brief §62 paths) vs one bucket per org. Recommendation: single bucket + folder scoping; per-org buckets create RLS/management overhead for zero isolation gain. — RESOLVED: single `club-documents` bucket implemented in 02-05 (migration 00006, Pattern 4).
+2. **Import jobs table** — persistent `import_jobs` table (resumable, auditable) vs transient progress state (simpler). Recommendation: lightweight `import_jobs` row only for row counts/status — matches D-13 progress feedback and enables retry. — RESOLVED: `import_jobs` row implemented in 02-06.
+3. **Equipment permission granularity** — D-23 minimal: `equipment.view` + `equipment.report` + `equipment.manage` (recommended) vs single `equipment.manage`. Recommendation: three values as D-23 wording. — RESOLVED: three values `equipment.view/report/manage` implemented in 02-02 (permission enum/seed) and 02-07 (Equipment section + nav for every role seeded equipment.view).
 
 ## Environment Availability
 
