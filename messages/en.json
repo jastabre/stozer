@@ -188,5 +188,44 @@
       "title": "No Players",
       "description": "Add players to your team."
     }
+  },
+  "seasons": {
+    "title": "Seasons",
+    "activeSeason": "Active season",
+    "noActiveSeason": "No active season",
+    "startNewSeason": "Start new season",
+    "name": "Name",
+    "startsOn": "Start date",
+    "movesTitle": "Carry players into the new season",
+    "movesHint": "Players not changed keep their team.",
+    "noTeam": "no team",
+    "keepTeam": "Keep team",
+    "moveTo": "New team",
+    "submit": "Start season",
+    "previousSeasons": "Previous seasons",
+    "noPreviousSeasons": "No previous seasons"
+  },
+  "teams": {
+    "title": "Teams",
+    "add": "Add team",
+    "name": "Name",
+    "category": "Category",
+    "save": "Save",
+    "delete": "Delete",
+    "manage": "Manage",
+    "submit": "Add team",
+    "empty": "No teams yet. Add your first team.",
+    "categories": {
+      "first_team": "First team",
+      "youth": "Youth",
+      "academy": "Academy",
+      "other": "Other"
+    },
+    "table": {
+      "name": "Name",
+      "category": "Category",
+      "sport": "Sport",
+      "athletes": "Athletes"
+    }
   }
 }

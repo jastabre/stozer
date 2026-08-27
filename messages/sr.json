@@ -188,5 +188,44 @@
       "title": "Nema igrača",
       "description": "Dodajte igrače u svoj tim."
     }
+  },
+  "seasons": {
+    "title": "Sezone",
+    "activeSeason": "Aktivna sezona",
+    "noActiveSeason": "Nema aktivne sezone",
+    "startNewSeason": "Zapocni novu sezonu",
+    "name": "Naziv",
+    "startsOn": "Datum pocetka",
+    "movesTitle": "Prenos igraca u novu sezonu",
+    "movesHint": "Igrac koji nije izmenjen zadrzava svoj tim.",
+    "noTeam": "bez tima",
+    "keepTeam": "Zadrzi tim",
+    "moveTo": "Novi tim",
+    "submit": "Zapocni sezonu",
+    "previousSeasons": "Prethodne sezone",
+    "noPreviousSeasons": "Nema prethodnih sezona"
+  },
+  "teams": {
+    "title": "Timovi",
+    "add": "Dodaj tim",
+    "name": "Naziv",
+    "category": "Kategorija",
+    "save": "Sacuvaj",
+    "delete": "Obrisi",
+    "manage": "Upravljaj",
+    "submit": "Dodaj tim",
+    "empty": "Jos nema timova. Dodajte prvi tim.",
+    "categories": {
+      "first_team": "Prvi tim",
+      "youth": "Mladost",
+      "academy": "Akademija",
+      "other": "Ostalo"
+    },
+    "table": {
+      "name": "Naziv",
+      "category": "Kategorija",
+      "sport": "Sport",
+      "athletes": "Igraca"
+    }
   }
 }

@@ -233,3 +233,22 @@ export async function countAthletes(
   if (error) return 0;
   return count ?? 0;
 }
+
+/**
+ * List the org's seasons, most recent first (active season first). Used by the
+ * seasons page (D-04: past seasons hidden behind a toggle).
+ */
+export async function listSeasons(
+  supabase: Supabase,
+  orgId: string
+): Promise<Season[]> {
+  const { data, error } = await supabase
+    .from("seasons")
+    .select("*")
+    .eq("organization_id", orgId)
+    .order("is_active", { ascending: false })
+    .order("starts_on", { ascending: false });
+
+  if (error) return [];
+  return (data as unknown as Season[]) ?? [];
+}
