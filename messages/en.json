@@ -201,6 +201,60 @@
         "contracts": "Contracts",
         "equipment": "Equipment"
       }
+    },
+    "registrations": {
+      "back": "Back to player",
+      "title": "Registrations",
+      "currentStatus": "Current status",
+      "until": "Valid until",
+      "daysLeft": "{count} days",
+      "noRegistration": "No active registration.",
+      "add": "Add registration",
+      "federation": "Federation / system",
+      "identifier": "Registration number",
+      "validFrom": "Valid from",
+      "validUntil": "Valid until",
+      "season": "Season",
+      "noSeason": "No season",
+      "submit": "Save",
+      "history": "Registrations",
+      "empty": "No registrations.",
+      "noFederation": "No federation",
+      "range": "from {from} to {to}",
+      "edit": "Edit",
+      "delete": "Delete",
+      "tones": {
+        "green": "Registered",
+        "yellow": "Expiring soon",
+        "red": "Expired / not registered"
+      }
+    },
+    "medical": {
+      "back": "Back to player",
+      "title": "Medical examinations",
+      "privacyNote": "Administrative sports-clearance information only.",
+      "currentStatus": "Current examination status",
+      "validUntil": "Valid until {date}",
+      "expiringIn": "expiring in {count} days",
+      "noExamination": "No examination recorded.",
+      "clearanceOnly": "Only administrative clearance is stored — no diagnoses or findings.",
+      "add": "Add examination",
+      "examinedOn": "Examination date",
+      "validUntilLabel": "Valid until",
+      "note": "Administrative note",
+      "notePlaceholder": "Optional note",
+      "submit": "Save",
+      "history": "Examinations",
+      "empty": "No examinations recorded.",
+      "range": "Examined {from} — valid until {to}",
+      "edit": "Edit",
+      "delete": "Delete",
+      "tones": {
+        "not_recorded": "Not recorded",
+        "valid": "Valid",
+        "expiring_soon": "Expiring soon",
+        "expired": "Expired"
+      }
     }
   },
   "subscription": {

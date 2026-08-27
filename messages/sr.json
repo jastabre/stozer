@@ -201,6 +201,60 @@
         "contracts": "Ugovori",
         "equipment": "Oprema"
       }
+    },
+    "registrations": {
+      "back": "Nazad na igra",
+      "title": "Registracije",
+      "currentStatus": "Trenutni status",
+      "until": "Važi do",
+      "daysLeft": "{count} dana",
+      "noRegistration": "Nema aktivne registracije.",
+      "add": "Dodaj registraciju",
+      "federation": "Federacija / sistem",
+      "identifier": "Registarski broj",
+      "validFrom": "Važi od",
+      "validUntil": "Važi do",
+      "season": "Sezona",
+      "noSeason": "Bez sezone",
+      "submit": "Sačuvaj",
+      "history": "Registracije",
+      "empty": "Nema registracija.",
+      "noFederation": "Bez federacije",
+      "range": "od {from} do {to}",
+      "edit": "Izmeni",
+      "delete": "Obriši",
+      "tones": {
+        "green": "Registrovan",
+        "yellow": "Ističe uskoro",
+        "red": "Istekao / nije registrovan"
+      }
+    },
+    "medical": {
+      "back": "Nazad na igra",
+      "title": "Medicinski pregledi",
+      "privacyNote": "Samo administrativni podaci o sportskoj podobnosti.",
+      "currentStatus": "Trenutni status pregleda",
+      "validUntil": "Važi do {date}",
+      "expiringIn": "ističe za {count} dana",
+      "noExamination": "Nema evidentiranog pregleda.",
+      "clearanceOnly": "Čuva se samo administrativna podobnost — bez dijagnoza i nalaza.",
+      "add": "Dodaj pregled",
+      "examinedOn": "Datum pregleda",
+      "validUntilLabel": "Važi do",
+      "note": "Administrativna napomena",
+      "notePlaceholder": "Opciona napomena",
+      "submit": "Sačuvaj",
+      "history": "Pregledi",
+      "empty": "Nema evidentiranih pregleda.",
+      "range": "Pregled {from} — važi do {to}",
+      "edit": "Izmeni",
+      "delete": "Obriši",
+      "tones": {
+        "not_recorded": "Nije evidentirano",
+        "valid": "Važeći",
+        "expiring_soon": "Ističe uskoro",
+        "expired": "Istekao"
+      }
     }
   },
   "subscription": {

@@ -13,6 +13,132 @@ export interface Season {
   is_active: boolean;
 }
 
+export interface Registration {
+  id: string;
+  organization_id: string;
+  athlete_id: string;
+  season_id: string | null;
+  federation: string | null;
+  identifier: string | null;
+  status: string;
+  valid_from: string;
+  valid_until: string;
+  document_id: string | null;
+  created_at: string;
+  season_name?: string | null;
+}
+
+export interface MedicalExamination {
+  id: string;
+  organization_id: string;
+  athlete_id: string;
+  examined_on: string;
+  valid_until: string;
+  note: string | null;
+  document_id: string | null;
+  created_at: string;
+}
+
+export interface OrganizationSettings {
+  id: string;
+  organization_id: string;
+  warning_threshold_days: number;
+}
+
+/**
+ * List an athlete's registration records, most recent expiry first (D-10: the
+ * current/latest record is the primary status source; past records secondary).
+ */
+export async function listRegistrations(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string
+): Promise<Registration[]> {
+  const { data, error } = await supabase
+    .from("registrations")
+    .select(
+      "id, organization_id, athlete_id, season_id, federation, identifier, status, valid_from, valid_until, document_id, created_at, seasons(name)"
+    )
+    .eq("organization_id", orgId)
+    .eq("athlete_id", athleteId)
+    .order("valid_until", { ascending: false });
+
+  if (error) return [];
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    organization_id: row.organization_id,
+    athlete_id: row.athlete_id,
+    season_id: row.season_id,
+    federation: row.federation,
+    identifier: row.identifier,
+    status: row.status,
+    valid_from: row.valid_from,
+    valid_until: row.valid_until,
+    document_id: row.document_id,
+    created_at: row.created_at,
+    season_name: (row.seasons as unknown as { name: string } | null)?.name ??
+      null,
+  }));
+}
+
+/**
+ * List an athlete's medical examinations, most recent first (D-33/D-37: latest
+ * examination is the status source; older records in the background).
+ */
+export async function listMedicalExaminations(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string
+): Promise<MedicalExamination[]> {
+  const { data, error } = await supabase
+    .from("medical_examinations")
+    .select("*")
+    .eq("organization_id", orgId)
+    .eq("athlete_id", athleteId)
+    .order("valid_until", { ascending: false });
+
+  if (error) return [];
+  return (data as unknown as MedicalExamination[]) ?? [];
+}
+
+/**
+ * Read the org's settings (warning_threshold_days, D-12). Every status
+ * renderer in the app consumes this single knob.
+ */
+export async function getOrganizationSettings(
+  supabase: Supabase,
+  orgId: string
+): Promise<OrganizationSettings | null> {
+  const { data, error } = await supabase
+    .from("organization_settings")
+    .select("*")
+    .eq("organization_id", orgId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as unknown as OrganizationSettings;
+}
+
+/**
+ * Update the org's expiry-warning threshold. Called only from club settings
+ * (guard: club_settings.manage). A null/negative guard keeps the DB CHECK
+ * happy; returns an error on DB failure.
+ */
+export async function updateOrganizationSettings(
+  supabase: Supabase,
+  orgId: string,
+  thresholdDays: number
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("organization_settings")
+    .update({ warning_threshold_days: thresholdDays })
+    .eq("organization_id", orgId);
+
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
 export interface Team {
   id: string;
   organization_id: string;
