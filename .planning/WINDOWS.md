@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 2
+open_count: 1
 waived_count: 0
-fixed_count: 0
+fixed_count: 1
 total_count: 2
-last_updated: 2026-08-27T16:19:33.634Z
+last_updated: 2026-08-27T22:13:10.638Z
 ---
 
 # Broken Windows Ledger
@@ -16,7 +16,7 @@ last_updated: 2026-08-27T16:19:33.634Z
 | id | phase | kind | file | line | description | status | reason | recorded_at | resolved_at |
 |----|-------|------|------|------|-------------|--------|--------|-------------|-------------|
 | 1 | 02 | unrun-verify | src/app/[locale]/(dashboard)/club/page.tsx |  | Manual DB/UI check (threshold persistence -> profile pills reflect it) deferred: no live Supabase; schema push is 02-08's gate | open |  | 2026-08-27T16:19:33.043Z |  |
-| 2 | 02 | deviation | src/app/[locale]/(dashboard)/players/[id]/registrations/page.tsx |  | registrations.document_id linkage dropdown deferred to 02-05 (documents table = 00006) per W1 cross-plan forward-reference guard | open |  | 2026-08-27T16:19:33.634Z |  |
+| 2 | 02 | deviation | src/app/[locale]/(dashboard)/players/[id]/registrations/page.tsx |  | registrations.document_id linkage dropdown deferred to 02-05 (documents table = 00006) per W1 cross-plan forward-reference guard | fixed |  | 2026-08-27T16:19:33.634Z | 2026-08-27T22:13:10.638Z |
 
 ````json
 [
@@ -39,10 +39,10 @@ last_updated: 2026-08-27T16:19:33.634Z
     "file": "src/app/[locale]/(dashboard)/players/[id]/registrations/page.tsx",
     "line": null,
     "description": "registrations.document_id linkage dropdown deferred to 02-05 (documents table = 00006) per W1 cross-plan forward-reference guard",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-27T16:19:33.634Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-27T22:13:10.638Z"
   }
 ]
 ````
