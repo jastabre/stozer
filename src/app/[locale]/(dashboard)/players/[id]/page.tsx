@@ -22,9 +22,10 @@ export default async function PlayerProfilePage({
   const supabase = await createServerClient();
   const t = await getTranslations("players.profile");
 
-  const [canView, canEdit] = await Promise.all([
+  const [canView, canEdit, canViewEquipment] = await Promise.all([
     hasPermission("athletes.view"),
     hasPermission("athletes.edit"),
+    hasPermission("equipment.view"),
   ]);
   if (!canView) notFound();
 
@@ -44,8 +45,8 @@ export default async function PlayerProfilePage({
     "guardians",
     "documents",
     "contracts",
-    "equipment",
   ];
+  if (canViewEquipment) sectionLinks.push("equipment");
 
   return (
     <div className="space-y-6">

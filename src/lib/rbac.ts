@@ -14,6 +14,7 @@ export const navConfigs: Record<string, NavItem[]> = {
     { label: "navigation.home", href: "/dashboard", icon: "Home" },
     { label: "navigation.teams", href: "/teams", icon: "Users" },
     { label: "navigation.people", href: "/people", icon: "UsersRound" },
+    { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
     { label: "navigation.calendar", href: "/calendar", icon: "Calendar" },
     { label: "navigation.finances", href: "/finances", icon: "Wallet" },
     { label: "navigation.documents", href: "/documents", icon: "FileText" },
@@ -26,6 +27,7 @@ export const navConfigs: Record<string, NavItem[]> = {
     { label: "navigation.home", href: "/dashboard", icon: "Home" },
     { label: "navigation.teams", href: "/teams", icon: "Users" },
     { label: "navigation.people", href: "/people", icon: "UsersRound" },
+    { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
     { label: "navigation.youthAcademy", href: "/youth", icon: "GraduationCap" },
     { label: "navigation.calendar", href: "/calendar", icon: "Calendar" },
     { label: "navigation.documents", href: "/documents", icon: "FileText" },
@@ -36,6 +38,7 @@ export const navConfigs: Record<string, NavItem[]> = {
   coach: [
     { label: "navigation.today", href: "/today", icon: "CalendarCheck" },
     { label: "navigation.team", href: "/team", icon: "Users" },
+    { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
     { label: "navigation.calendar", href: "/calendar", icon: "Calendar" },
     { label: "navigation.more", href: "/more", icon: "MoreHorizontal" },
   ],
@@ -44,6 +47,7 @@ export const navConfigs: Record<string, NavItem[]> = {
   admin_finance: [
     { label: "navigation.home", href: "/dashboard", icon: "Home" },
     { label: "navigation.members", href: "/members", icon: "Users" },
+    { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
     { label: "navigation.finances", href: "/finances", icon: "Wallet" },
     { label: "navigation.reports", href: "/reports", icon: "BarChart3" },
     { label: "navigation.settings", href: "/settings", icon: "Settings" },
