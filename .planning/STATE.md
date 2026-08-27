@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Club & People
 status: executing
-stopped_at: Completed 02-06-PLAN.md
-last_updated: "2026-08-27T21:27:03.625Z"
-state_head: 6c79e18738876926691da28bb7ed070e9c1d77d0
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-08-27T21:55:41.074Z"
+state_head: 257aa5b5289205cd91b4f9fd5148e4d0ee3a5600
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 9
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 **Phase:** 2 (Club & People) — EXECUTING
-**Plan:** 5 of 8
+**Plan:** 6 of 8
 **Status:** Ready to execute
 **Progress:** ████░░░░░░ [░░░░░░░░░░] 0% (Phase 1 of 7 complete)
 
@@ -44,6 +44,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 | Phase 02-club-people P02 | 65min | 3 tasks | 21 files |
 | Phase 02-club-people P03 | 16min | 3 tasks | 14 files |
 | Phase 02 P06 | 17 min | 3 tasks | 10 files |
+| Phase 02 P04 | 12min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 - [Phase 2]: Phase 2 Plan 6 uses migration 00008 for import_jobs because 00004 is consumed and downstream plans reserve 00006/00007.
 - [Phase 2]: Import jobs persist parsed rows, mappings, duplicate decisions, and processed_rows so server batches are stateless and retries cannot replay writes.
 - [Phase 2]: Import parsers use strict csv-parse and exceljs, never evaluate formulas, and keep null-DOB duplicate matching disabled.
+- [Phase 2]: 2026-08-27: 02-04 uses migration 00006_staff_guardians.sql because 00005 is registration_medical.
+- [Phase 2]: 2026-08-27: Staff account linking refreshes app_metadata claims and cannot grant the reserved super_admin role.
+- [Phase 2]: 2026-08-27: Staff licenses and guardians use small-set replacement semantics with pure guardian primary normalization.
 
 ### Lessons Learned
 
@@ -93,9 +97,9 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 ## Session Continuity
 
-**Stopped at:** Completed 02-06-PLAN.md
+**Stopped at:** Completed 02-04-PLAN.md
 
-**Last session:** 2026-08-27T21:27:03.594Z
+**Last session:** 2026-08-27T21:55:41.034Z
 **Resume file:** None
 **Next action:** Run `/gsd-plan-phase 2` to plan Phase 2 (Teams & People / Club & People)
 

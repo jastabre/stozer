@@ -55,7 +55,7 @@ Plans:
   7. Basic player contracts are tracked (type, status, dates, document, expiry warning)
   8. Player documents (medical, insurance) are stored with expiry tracking
 
-**Plans**: 4/8 plans executed
+**Plans**: 5/8 plans executed
 
 Plans:
 **Wave 1**
@@ -72,7 +72,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 02-04-PLAN.md — Staff profiles with licenses + guardian contacts (one primary)
+- [x] 02-04-PLAN.md — Staff profiles with licenses + guardian contacts (one primary)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -214,7 +214,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/TBD | Not started | - |
-| 2. Club & People | 4/8 | In Progress|  |
+| 2. Club & People | 5/8 | In Progress|  |
 | 3. Scheduling & Attendance | 0/TBD | Not started | - |
 | 4. Youth Finance | 0/TBD | Not started | - |
 | 5. Bank Reconciliation | 0/TBD | Not started | - |
