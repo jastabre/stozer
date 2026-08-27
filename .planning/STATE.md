@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Club & People
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-08-27T15:46:27.665Z"
-state_head: f6c592482ef4fcd041e193e8f6f254e331b976f6
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-08-27T16:18:48.501Z"
+state_head: 8c9b06084df45f00456ba11048b553acffe8d949
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 9
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 **Phase:** 2 (Club & People) — EXECUTING
-**Plan:** 3 of 8
+**Plan:** 4 of 8
 **Status:** Ready to execute
 **Progress:** ████░░░░░░ [░░░░░░░░░░] 0% (Phase 1 of 7 complete)
 
@@ -42,6 +42,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 |------|----------|-------|-------|
 | Phase 02-club-people P01 | 8min | 3 tasks | 8 files |
 | Phase 02-club-people P02 | 65min | 3 tasks | 21 files |
+| Phase 02-club-people P03 | 16min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,10 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 - [Phase 2]: Pattern 3 club athlete counter realized as SECURITY DEFINER RPC claim_club_athlete_number (JWT org-scoped) since supabase-js cannot express atomic UPDATE..RETURNING
 - [Phase 2]: Hand-written supabase Database type must include Views:{} and Relationships on every table or nested relational selects collapse to never
 - [Phase 2]: Season rollover runs as sequential server-action steps; single-active invariant backstopped by partial unique index (supabase-js has no multi-statement transaction)
+- [Phase 2]: Migration numbering shifted: 02-03 registration/medical migration ships as 00005 because 02-02's counter-RPC deviation consumed 00004. Downstream plans 02-04..02-07 must renumber +1 (00006..00009); 02-08 pristine-diff range becomes 00002..00009.
+- [Phase 2]: 'Current' registration/medical record = created_at DESC, first wins (not earliest-expiry) — chosen in 02-03, applied consistently to profile lists + team overview (8c9b060) so views never disagree.
+- [Phase 2]: Medical examination writes ride existing registrations.manage (no medical.manage); reads = registrations.view OR medical.view (coach D-38 visibility) — no app_permission additions in 00005.
+- [Phase 2]: registrations.document_id linkage UI deferred to 02-05 (documents table = migration 00006, W1 cross-plan guard); column created + writable now, dropdown population lands with documents module.
 
 ### Lessons Learned
 
@@ -84,9 +89,9 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 ## Session Continuity
 
-**Stopped at:** Completed 02-02-PLAN.md
+**Stopped at:** Completed 02-03-PLAN.md
 
-**Last session:** 2026-08-27T15:45:45.357Z
+**Last session:** 2026-08-27T16:18:48.474Z
 **Resume file:** None
 **Next action:** Run `/gsd-plan-phase 2` to plan Phase 2 (Teams & People / Club & People)
 
