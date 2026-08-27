@@ -55,7 +55,7 @@ Plans:
   7. Basic player contracts are tracked (type, status, dates, document, expiry warning)
   8. Player documents (medical, insurance) are stored with expiry tracking
 
-**Plans**: 1/8 plans executed
+**Plans**: 2/8 plans executed
 
 Plans:
 **Wave 1**
@@ -64,7 +64,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — TRACER: seasons/teams/players core schema, club athlete ID, roster, rollover
+- [x] 02-02-PLAN.md — TRACER: seasons/teams/players core schema, club athlete ID, roster, rollover
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -214,7 +214,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/TBD | Not started | - |
-| 2. Club & People | 1/8 | In Progress|  |
+| 2. Club & People | 2/8 | In Progress|  |
 | 3. Scheduling & Attendance | 0/TBD | Not started | - |
 | 4. Youth Finance | 0/TBD | Not started | - |
 | 5. Bank Reconciliation | 0/TBD | Not started | - |
