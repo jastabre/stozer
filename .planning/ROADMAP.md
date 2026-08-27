@@ -48,12 +48,17 @@ Plans:
   6. Registration status shows green/yellow/red indicators with expiry warnings
   7. Basic player contracts are tracked (type, status, dates, document, expiry warning)
   8. Player documents (medical, insurance) are stored with expiry tracking
-**Plans**: TBD
+**Plans**: 8 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md — Test infrastructure (vitest) + all Phase 2 dependencies with legitimacy gate
+- [ ] 02-02-PLAN.md — TRACER: seasons/teams/players core schema, club athlete ID, roster, rollover
+- [ ] 02-03-PLAN.md — Registrations + shared status helper + medical examinations (D-33..D-42)
+- [ ] 02-04-PLAN.md — Staff profiles with licenses + guardian contacts (one primary)
+- [ ] 02-05-PLAN.md — Typed documents + private storage + basic player contracts
+- [ ] 02-06-PLAN.md — CSV/XLSX import wizard (mapping, validation, dedupe, progress)
+- [ ] 02-07-PLAN.md — Equipment (sizes, issue states, team tracking, requests, export)
+- [ ] 02-08-PLAN.md — [BLOCKING] schema push to Supabase + type regen + full phase gates
 
 ### Phase 3: Scheduling & Attendance
 **Goal:** A coach can schedule trainings, mark attendance on their phone in under a minute, and the club has a unified calendar showing all activities. This is the daily-use phase that drives retention.
