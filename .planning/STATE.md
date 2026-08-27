@@ -6,18 +6,20 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A club president or youth director opens Stožer and instantly knows: who paid, who owes, who's registered, who's training today, what needs attention — without calling three people or searching through files.
 
-**Current focus:** Phase 1: Foundation
+**Current focus:** Phase 2: Teams & People
 
 ## Current Position
 
-**Phase:** 1 — Foundation
+**Phase:** 2 — Teams & People
 **Plan:** —
-**Status:** Not started
-**Progress:** ░░░░░░░░░░ 0%
+**Status:** Planning
+**Progress:** ████░░░░░░ 14% (Phase 1 of 7 complete)
 
 ## Performance Metrics
 
-(Tracked as phases complete)
+| Phase | Plan | Duration | Tasks | Files | Completed |
+|-------|------|----------|-------|-------|-----------|
+| 01-foundation | 01 | 45min | 12 | 45+ | 2026-08-27 |
 
 ## Accumulated Context
 
@@ -29,17 +31,33 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 - 2026-08-26: Vertical MVP structure with Foundation phase first
 - 2026-08-26: Sequential execution (no parallel plans)
 - 2026-08-26: Interactive mode (confirm at each step)
+- 2026-08-26: Left sidebar, collapsible, clean/neutral design
+- 2026-08-26: Single-step org creation, first user = President
+- 2026-08-26: Single org per user in V1
+- 2026-08-26: FREE limits visible+locked, inline upgrade CTA
+- 2026-08-26: 14-day trial, no card, lock features on expiry
+- 2026-08-26: Section empty states, context-guided first use
+- 2026-08-27: Integer cents/para for all financial data (D-07)
+- 2026-08-27: RLS on every table with FORCE ROW LEVEL SECURITY
+- 2026-08-27: First user of org becomes club_president (D-05)
+- 2026-08-27: 14-day CLUB trial on org creation (D-09)
+- 2026-08-27: Middleware handles both auth routing and i18n locale detection
+- 2026-08-27: Role stored in JWT app_metadata for server-side RBAC
 
 ### Lessons Learned
-(None yet — project just initialized)
+- Next.js 16 deprecates `middleware` in favor of `proxy` — middleware still works
+- PowerShell `git add` with parentheses requires quoting: `git add "src/app/(auth)/"`
+- Auth pages outside `[locale]` route need their own i18n provider wrapper
+- React Hooks purity rule: extract `Date.now()` to helper functions in server components
 
 ### Blockers
-(None yet)
+(None)
 
 ## Session Continuity
 
-**Last session:** 2026-08-26 — Project initialization complete
-**Next action:** Run `/gsd-plan-phase 1` to start Foundation phase planning
+**Last session:** 2026-08-27 — Phase 1 Foundation complete
+**Resume file:** .planning/phases/01-foundation/01-PLAN-SUMMARY.md
+**Next action:** Run `/gsd-plan-phase 2` to start Teams & People phase planning
 
 ---
-*Last updated: 2026-08-26 after initialization*
+*Last updated: 2026-08-27 after Phase 1 completion*

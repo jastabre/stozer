@@ -6,7 +6,7 @@ STOŽER development proceeds in 7 phases: a thin Foundation phase establishing m
 
 ## Phases
 
-- [ ] **Phase 1: Foundation** - Multi-tenant infrastructure, auth, RBAC, RLS, i18n, app shell, subscription entitlements
+- [x] **Phase 1: Foundation** - Multi-tenant infrastructure, auth, RBAC, RLS, i18n, app shell, subscription entitlements
 - [ ] **Phase 2: Club & People** - Seasons, teams, players, staff, guardians, club identity, player administration, registration tracking
 - [ ] **Phase 3: Scheduling & Attendance** - Calendar, venues, training scheduling, attendance, matches, venue conflict detection
 - [ ] **Phase 4: Youth Finance** - Membership fee schemes, automatic charges, payment tracking, cash payments, role-based finance views
@@ -27,12 +27,12 @@ STOŽER development proceeds in 7 phases: a thin Foundation phase establishing m
   3. Two different organizations see completely isolated data (RLS enforced)
   4. User can switch between organizations they belong to
   5. App shell loads with navigation, Serbian Latin text, and neutral design system
-**Plans**: TBD
+**Plans**: 01-PLAN (12 tasks)
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [x] 01-01: Foundation (auth, database, i18n, app shell, RBAC, subscriptions, PWA)
+- [ ] 01-02: (reserved)
+- [ ] 01-03: (reserved)
 
 ### Phase 2: Club & People
 **Goal:** A club owner can set up their club structure — seasons, teams, players, staff — and see registration status with expiry alerts. Players can be imported in bulk. This is the core domain model that everything else builds on.
