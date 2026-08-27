@@ -21,26 +21,26 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Club Structure
 
-- [ ] **STRC-01**: Season management — create, activate, archive seasons
+- [x] **STRC-01**: Season management — create, activate, archive seasons
 - [ ] **STRC-02**: Team/selection management (Senior, U19, U17, U15, etc.) with sport abstraction
 - [ ] **STRC-03**: Player profiles with permanent identity across seasons (name, DOB, nationality, position, status)
 - [ ] **STRC-04**: Player equipment size (XS, S, M, L, XL, XXL, custom) and jersey number
-- [ ] **STRC-05**: Player club athlete ID — stable unique number used as payment reference (poziv na broj)
+- [x] **STRC-05**: Player club athlete ID — stable unique number used as payment reference (poziv na broj)
 - [ ] **STRC-06**: Staff/coach profiles (name, title, contact, teams, license, license expiration)
 - [ ] **STRC-07**: Guardian contacts for minor players (name, relationship, phone, email, preferred contact method)
 - [ ] **STRC-08**: Sport abstraction — football and basketball from day one, extensible to other sports
-- [ ] **STRC-09**: Staff license expiry tracking with alerts
+- [x] **STRC-09**: Staff license expiry tracking with alerts
 
 ### Player Administration
 
-- [ ] **REG-01**: Player registration tracking (federation/system, registration identifier, status)
-- [ ] **REG-02**: Registration start and expiry dates with configurable warning thresholds
-- [ ] **REG-03**: Registration status visual indicators (green=registered, yellow=expiring soon, red=expired/not registered)
+- [x] **REG-01**: Player registration tracking (federation/system, registration identifier, status)
+- [x] **REG-02**: Registration start and expiry dates with configurable warning thresholds
+- [x] **REG-03**: Registration status visual indicators (green=registered, yellow=expiring soon, red=expired/not registered)
 - [ ] **REG-04**: Registration document upload and storage
 - [ ] **REG-05**: Generic athlete identifier system for federation IDs (not hardcoded to COMET)
 - [ ] **REG-06**: Basic player documents (medical, insurance, identity, custom types) with expiry tracking
 - [ ] **REG-07**: Expiration alerts for registrations and documents
-- [ ] **REG-08**: CSV/XLSX player import with column mapping, validation, and preview
+- [x] **REG-08**: CSV/XLSX player import with column mapping, validation, and preview
 - [ ] **REG-09**: Basic player contract tracking (type, status, start/end dates, document, expiry warning)
 
 ### Daily Operations
@@ -186,23 +186,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-07 | Phase 1 | Pending |
 | CORE-08 | Phase 1 | Pending |
 | CORE-09 | Phase 1 | Pending |
-| STRC-01 | Phase 2 | Pending |
+| STRC-01 | Phase 2 | Complete |
 | STRC-02 | Phase 2 | Pending |
 | STRC-03 | Phase 2 | Pending |
 | STRC-04 | Phase 2 | Pending |
-| STRC-05 | Phase 2 | Pending |
+| STRC-05 | Phase 2 | Complete |
 | STRC-06 | Phase 2 | Pending |
 | STRC-07 | Phase 2 | Pending |
 | STRC-08 | Phase 2 | Pending |
-| STRC-09 | Phase 2 | Pending |
-| REG-01 | Phase 2 | Pending |
-| REG-02 | Phase 2 | Pending |
-| REG-03 | Phase 2 | Pending |
+| STRC-09 | Phase 2 | Complete |
+| REG-01 | Phase 2 | Complete |
+| REG-02 | Phase 2 | Complete |
+| REG-03 | Phase 2 | Complete |
 | REG-04 | Phase 2 | Pending |
 | REG-05 | Phase 2 | Pending |
 | REG-06 | Phase 2 | Pending |
 | REG-07 | Phase 2 | Pending |
-| REG-08 | Phase 2 | Pending |
+| REG-08 | Phase 2 | Complete |
 | REG-09 | Phase 2 | Pending |
 | OPER-01 | Phase 3 | Pending |
 | OPER-02 | Phase 3 | Pending |
@@ -244,6 +244,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RPT-03 | Phase 7 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 60 total
 - Mapped to phases: 60
 - Unmapped: 0 ✓
