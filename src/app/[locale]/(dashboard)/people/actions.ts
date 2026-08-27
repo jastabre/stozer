@@ -24,7 +24,6 @@ const roleValues = [
   "youth_director",
   "coach",
   "admin_finance",
-  "super_admin",
 ] as const satisfies readonly AppRole[];
 
 const profileSchema = z.object({
@@ -187,20 +186,24 @@ export async function deleteStaffLicenseAction(formData: FormData) {
   redirect(`/people/${staffId}`);
 }
 
-async function findAuthUserIdByEmail(email: string): Promise<string> {
+function createAuthAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!serviceKey || !url) {
     throw new Error("Povezivanje naloga zahteva podešen server-side Supabase admin ključ");
   }
-  const admin = createClient<Database>(url, serviceKey, {
+  return createClient<Database>(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+async function findAuthUserByEmail(email: string) {
+  const admin = createAuthAdminClient();
   const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (error) throw new Error("Nije moguće pronaći korisnički nalog");
   const user = data.users.find((candidate) => candidate.email?.toLowerCase() === email);
   if (!user) throw new Error("Korisnički nalog sa tim emailom nije pronađen");
-  return user.id;
+  return { admin, user };
 }
 
 export async function linkStaffAccountAction(formData: FormData) {
@@ -215,18 +218,29 @@ export async function linkStaffAccountAction(formData: FormData) {
   const parsedEmail = z.string().email().safeParse(email.trim().toLowerCase());
   if (!parsedRole.success || !parsedEmail.success) throw new Error("Email ili uloga nisu validni");
 
-  const userId = await findAuthUserIdByEmail(parsedEmail.data);
+  const { admin, user } = await findAuthUserByEmail(parsedEmail.data);
   const supabase = await createServerClient();
   throwIfError(
     await linkStaffToUser(
       supabase,
       org.organizationId,
       staffId,
-      userId,
+      user.id,
       parsedRole.data
     ),
     "Greška pri povezivanju naloga"
   );
+  // authorize() and requireOrganization() use app_metadata claims. Refresh
+  // the linked account's claims now so the newly granted role takes effect on
+  // its next session instead of leaving a membership that cannot authorize.
+  const { error: claimsError } = await admin.auth.admin.updateUserById(user.id, {
+    app_metadata: {
+      ...user.app_metadata,
+      organization_id: org.organizationId,
+      user_role: parsedRole.data,
+    },
+  });
+  if (claimsError) throw new Error("Nalog je povezan, ali uloga nije aktivirana: " + claimsError.message);
   revalidatePath(`/people/${staffId}`);
   revalidatePath("/people");
   redirect(`/people/${staffId}`);

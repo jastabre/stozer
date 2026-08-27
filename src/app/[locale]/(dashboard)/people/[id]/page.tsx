@@ -15,7 +15,7 @@ import {
 } from "../actions";
 import type { AppRole } from "@/types/database";
 
-const roles: AppRole[] = ["club_president", "youth_director", "coach", "admin_finance", "super_admin"];
+const roles: AppRole[] = ["club_president", "youth_director", "coach", "admin_finance"];
 const toneClasses = {
   green: "bg-emerald-100 text-emerald-800",
   yellow: "bg-amber-100 text-amber-800",
