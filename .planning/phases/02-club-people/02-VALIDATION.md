@@ -19,18 +19,18 @@ created: 2026-08-27
 
 | Property | Value |
 |----------|-------|
-| **Framework** | jest 29.x + React Testing Library |
-| **Config file** | jest.config.* (or "none — Wave 0 installs") |
-| **Quick run command** | `npm test -- --runInBand` |
-| **Full suite command** | `npm test` |
+| **Framework** | vitest + @vitejs/plugin-react + jsdom + @testing-library/react + @testing-library/dom + @testing-library/jest-dom + vite-tsconfig-paths **[CITED: node_modules/next/dist/docs/01-app/02-guides/testing/vitest.md]** |
+| **Config file** | `vitest.config.ts` + `vitest.setup.ts` — created in 02-01 Task 3 (Wave 0) |
+| **Quick run command** | `npx vitest run src/lib/__tests__/<target>.test.ts` (targeted per task) |
+| **Full suite command** | `npm test` (package script = `vitest run`); `npx vitest run --coverage` for wave merges |
 | **Estimated runtime** | ~60 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `npm test -- --runInBand`
-- **After every plan wave:** Run `npm test`
+- **After every task commit:** Run the target test file: `npx vitest run src/lib/__tests__/<file>.test.ts`
+- **After every plan wave:** Run the full suite: `npm test` (= `vitest run`)
 - **Before `/gsd-verify-work`:** Full suite must be green
 - **Max feedback latency:** 60 seconds
 
@@ -50,9 +50,9 @@ created: 2026-08-27
 
 ## Wave 0 Requirements
 
-- [ ] `src/**/__tests__/` stubs for STRC / REG requirements
-- [ ] Shared test fixtures (multitenant org context, role-scoped helpers)
-- [ ] jest + React Testing Library — if no framework detected
+- [ ] `vitest.config.ts` + `vitest.setup.ts` (02-01 Task 3)
+- [ ] Wave-0 stubs: `src/lib/__tests__/{athlete-id,status,rows,guardian,rollover}.test.ts` (02-01 Task 3) — later plans replace stub bodies with real RED tests
+- [ ] vitest + @testing-library/* + jsdom + vite-tsconfig-paths installed (02-01, after the blocking-human package-legitimacy gate)
 
 ---
 
@@ -60,8 +60,8 @@ created: 2026-08-27
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| CSV/XLSX column-mapping wizard UX | REG-01…REG-06 | Interactive file mapping cannot be faithfully automated | Import a CSV, map columns, validate preview, confirm import |
-| Green/yellow/red registration status rendering | REG-08 | Visual expiry-state indicators | Open a player's registration with expiry warnings and verify indicator colors |
+| CSV/XLSX column-mapping wizard UX | REG-08 | Interactive file mapping cannot be faithfully automated | Import a CSV, map columns, validate preview, confirm import |
+| Green/yellow/red registration status rendering | REG-03 | Visual expiry-state indicators | Open a player's registration with expiry warnings and verify indicator colors |
 
 *All other phase behaviors have automated verification.*
 
