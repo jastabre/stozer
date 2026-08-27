@@ -24,21 +24,33 @@ const optionalString = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().optional()
 );
+const optionalEnum = <T extends [string, ...string[]]>(values: T) =>
+  z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.enum(values).optional()
+  );
+const optionalNumber = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.coerce.number().int().positive().optional()
+);
 
 export const importRowSchema = z.object({
-  club_athlete_number: z.coerce.number().int().positive().optional(),
+  club_athlete_number: optionalNumber,
   first_name: z.string().trim().min(1, "First name is required"),
   last_name: z.string().trim().min(1, "Last name is required"),
   birth_date: z
     .string()
     .trim()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Birth date must use YYYY-MM-DD"),
-  gender: z.enum(["male", "female", "other"]).optional(),
+  gender: optionalEnum(["male", "female", "other"]),
   nationality: optionalString,
   position: optionalString,
   federation_id: optionalString,
   team: optionalString,
-  jersey_number: z.coerce.number().int().min(1).max(99).optional(),
+  jersey_number: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce.number().int().min(1).max(99).optional()
+  ),
   phone: optionalString,
   guardian_name: optionalString,
   guardian_phone: optionalString,
