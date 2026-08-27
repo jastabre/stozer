@@ -55,9 +55,9 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 ## Session Continuity
 
-**Last session:** 2026-08-27 — Phase 1 Foundation complete
-**Resume file:** .planning/phases/01-foundation/01-PLAN-SUMMARY.md
-**Next action:** Run `/gsd-plan-phase 2` to start Teams & People phase planning
+**Last session:** 2026-08-27 — Phase 2 Club & People context gathered
+**Resume file:** .planning/phases/02-club-people/02-CONTEXT.md
+**Next action:** Run `/gsd-plan-phase 2` to plan Phase 2 (Teams & People / Club & People)
 
 ---
-*Last updated: 2026-08-27 after Phase 1 completion*
+*Last updated: 2026-08-27 after Phase 2 discuss-phase*
