@@ -457,6 +457,156 @@ export interface Database {
           }
         ];
       };
+      organization_settings: {
+        Row: {
+          id: string;
+          organization_id: string;
+          warning_threshold_days: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          warning_threshold_days?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          warning_threshold_days?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "organization_settings_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      registrations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          athlete_id: string;
+          season_id: string | null;
+          federation: string | null;
+          identifier: string | null;
+          status: string;
+          valid_from: string;
+          valid_until: string;
+          document_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          athlete_id: string;
+          season_id?: string | null;
+          federation?: string | null;
+          identifier?: string | null;
+          status?: string;
+          valid_from: string;
+          valid_until: string;
+          document_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          athlete_id?: string;
+          season_id?: string | null;
+          federation?: string | null;
+          identifier?: string | null;
+          status?: string;
+          valid_from?: string;
+          valid_until?: string;
+          document_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "registrations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registrations_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "athletes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registrations_season_id_fkey";
+            columns: ["season_id"];
+            isOneToOne: false;
+            referencedRelation: "seasons";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      medical_examinations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          athlete_id: string;
+          examined_on: string;
+          valid_until: string;
+          note: string | null;
+          document_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          athlete_id: string;
+          examined_on: string;
+          valid_until: string;
+          note?: string | null;
+          document_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          athlete_id?: string;
+          examined_on?: string;
+          valid_until?: string;
+          note?: string | null;
+          document_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "medical_examinations_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "medical_examinations_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "athletes";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {
