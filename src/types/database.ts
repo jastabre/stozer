@@ -10,6 +10,17 @@ export type AppRole =
 
 export type SportType = "football" | "basketball";
 
+export type DocumentType =
+  | "registration"
+  | "contract"
+  | "medical"
+  | "insurance"
+  | "identity"
+  | "federation"
+  | "custom";
+
+export type ContractStatus = "draft" | "active" | "terminated" | "expired";
+
 export type Json =
   | string
   | number
@@ -903,6 +914,122 @@ export interface Database {
           }
         ];
       };
+      documents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          owner_type: "athlete" | "staff";
+          owner_id: string;
+          doc_type: DocumentType;
+          custom_type: string | null;
+          filename: string;
+          storage_path: string;
+          issued_at: string | null;
+          expires_at: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          owner_type: "athlete" | "staff";
+          owner_id: string;
+          doc_type: DocumentType;
+          custom_type?: string | null;
+          filename: string;
+          storage_path: string;
+          issued_at?: string | null;
+          expires_at?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          owner_type?: "athlete" | "staff";
+          owner_id?: string;
+          doc_type?: DocumentType;
+          custom_type?: string | null;
+          filename?: string;
+          storage_path?: string;
+          issued_at?: string | null;
+          expires_at?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "documents_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      contracts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          athlete_id: string;
+          contract_type: string;
+          status: ContractStatus;
+          valid_from: string | null;
+          valid_until: string | null;
+          document_id: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          athlete_id: string;
+          contract_type: string;
+          status?: ContractStatus;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          document_id?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          athlete_id?: string;
+          contract_type?: string;
+          status?: ContractStatus;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          document_id?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contracts_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contracts_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "athletes";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {
@@ -915,6 +1042,8 @@ export interface Database {
       app_role: AppRole;
       app_permission: AppPermission;
       sport_type: SportType;
+      document_type: DocumentType;
+      contract_status: ContractStatus;
     };
   };
 }
