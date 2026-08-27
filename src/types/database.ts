@@ -10,6 +10,14 @@ export type AppRole =
 
 export type SportType = "football" | "basketball";
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export type AppPermission =
   | "teams.view"
   | "teams.create"
@@ -603,6 +611,71 @@ export interface Database {
             columns: ["athlete_id"];
             isOneToOne: false;
             referencedRelation: "athletes";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      import_jobs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          created_by: string | null;
+          filename: string;
+          status: string;
+          total_rows: number;
+          valid_rows: number;
+          error_rows: number;
+          duplicated_rows: number;
+          error_message: string | null;
+          parsed_rows: Json;
+          column_mapping: Json;
+          duplicate_decisions: Json;
+          processed_rows: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          created_by?: string | null;
+          filename: string;
+          status?: string;
+          total_rows?: number;
+          valid_rows?: number;
+          error_rows?: number;
+          duplicated_rows?: number;
+          error_message?: string | null;
+          parsed_rows?: Json;
+          column_mapping?: Json;
+          duplicate_decisions?: Json;
+          processed_rows?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          created_by?: string | null;
+          filename?: string;
+          status?: string;
+          total_rows?: number;
+          valid_rows?: number;
+          error_rows?: number;
+          duplicated_rows?: number;
+          error_message?: string | null;
+          parsed_rows?: Json;
+          column_mapping?: Json;
+          duplicate_decisions?: Json;
+          processed_rows?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "import_jobs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           }
         ];
