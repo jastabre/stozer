@@ -142,7 +142,7 @@ status: complete
 4. **Task 3 RED: guardian primary tests** — `2faba54` (test)
 5. **Task 3 GREEN: guardian implementation and CRUD UI** — `553725d` (feat)
 
-**Plan metadata:** pending docs commit.
+**Plan metadata:** `ca71a01` (docs: complete staff and guardian plan).
 
 ## Files Created/Modified
 
