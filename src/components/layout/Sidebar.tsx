@@ -4,14 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import {
-  Menu,
-  X,
-  Home,
-  Users,
-  Calendar,
-  Settings,
-} from "lucide-react";
+import { Menu, X, Home, Users, Calendar, Settings } from "lucide-react";
 import { UserMenu } from "./UserMenu";
 
 export function Sidebar({ orgId: _orgId }: { orgId: string }) {
