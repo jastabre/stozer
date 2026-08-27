@@ -39,7 +39,7 @@ function assertOrganizationPath(organizationId: string, storagePath: string): vo
   }
 }
 
-/** Create a private, time-limited URL. Never use getPublicUrl for this bucket. */
+/** Create a private, time-limited URL for the private document bucket. */
 export async function getSignedUrl(
   supabase: Supabase,
   organizationId: string,
