@@ -125,6 +125,15 @@ export async function setTeamEquipmentRequirements(
   teamId: string,
   equipmentTypeIds: string[]
 ): Promise<{ ok: true } | { error: string }> {
+  const [{ data: team }, { data: types }] = await Promise.all([
+    supabase.from("teams").select("id").eq("organization_id", orgId).eq("id", teamId).maybeSingle(),
+    equipmentTypeIds.length
+      ? supabase.from("equipment_types").select("id").eq("organization_id", orgId).in("id", equipmentTypeIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (!team || (types?.length ?? 0) !== new Set(equipmentTypeIds).size) {
+    return { error: "Team or equipment type is outside the organization" };
+  }
   const { error: deleteError } = await supabase
     .from("team_equipment_requirements")
     .delete()
@@ -366,6 +375,8 @@ export async function createTeamEquipment(
   orgId: string,
   input: Pick<Database["public"]["Tables"]["team_equipment"]["Insert"], "team_id" | "responsible_staff_id" | "item_name" | "quantity" | "state" | "season_id" | "note">
 ): Promise<{ ok: true } | { error: string }> {
+  const references = await ensureTeamAndStaffReferences(supabase, orgId, input.team_id, input.responsible_staff_id, input.season_id);
+  if ("error" in references) return references;
   const { error } = await supabase.from("team_equipment").insert({ organization_id: orgId, ...input });
   return error ? { error: error.message } : { ok: true };
 }
@@ -376,6 +387,8 @@ export async function updateTeamEquipment(
   id: string,
   input: Pick<Database["public"]["Tables"]["team_equipment"]["Update"], "team_id" | "responsible_staff_id" | "item_name" | "quantity" | "state" | "note">
 ): Promise<{ ok: true } | { error: string }> {
+  const references = await ensureTeamAndStaffReferences(supabase, orgId, input.team_id, input.responsible_staff_id, undefined);
+  if ("error" in references) return references;
   const { error } = await supabase.from("team_equipment").update(input).eq("id", id).eq("organization_id", orgId);
   return error ? { error: error.message } : { ok: true };
 }
@@ -387,6 +400,27 @@ export async function deleteTeamEquipment(
 ): Promise<{ ok: true } | { error: string }> {
   const { error } = await supabase.from("team_equipment").delete().eq("id", id).eq("organization_id", orgId);
   return error ? { error: error.message } : { ok: true };
+}
+
+async function ensureTeamAndStaffReferences(
+  supabase: Supabase,
+  orgId: string,
+  teamId: string | null | undefined,
+  staffId: string | null | undefined,
+  seasonId: string | null | undefined
+): Promise<{ ok: true } | { error: string }> {
+  const checks = await Promise.all([
+    teamId
+      ? supabase.from("teams").select("id").eq("id", teamId).eq("organization_id", orgId).maybeSingle()
+      : Promise.resolve({ data: { id: "optional" }, error: null }),
+    staffId
+      ? supabase.from("staff").select("id").eq("id", staffId).eq("organization_id", orgId).maybeSingle()
+      : Promise.resolve({ data: { id: "optional" }, error: null }),
+    seasonId
+      ? supabase.from("seasons").select("id").eq("id", seasonId).eq("organization_id", orgId).maybeSingle()
+      : Promise.resolve({ data: { id: "optional" }, error: null }),
+  ]);
+  return checks.every((check) => check.data) ? { ok: true } : { error: "Team, staff, or season is outside the organization" };
 }
 
 export async function listEquipmentRequests(
@@ -418,6 +452,14 @@ export async function createEquipmentRequest(
   orgId: string,
   input: Pick<Database["public"]["Tables"]["equipment_requests"]["Insert"], "team_id" | "item_name" | "quantity" | "note" | "requester_staff_id">
 ): Promise<{ ok: true } | { error: string }> {
+  if (input.team_id) {
+    const { data: team } = await supabase.from("teams").select("id").eq("id", input.team_id).eq("organization_id", orgId).maybeSingle();
+    if (!team) return { error: "Team is outside the organization" };
+  }
+  if (input.requester_staff_id) {
+    const { data: requester } = await supabase.from("staff").select("id").eq("id", input.requester_staff_id).eq("organization_id", orgId).maybeSingle();
+    if (!requester) return { error: "Requester is outside the organization" };
+  }
   const { error } = await supabase.from("equipment_requests").insert({ organization_id: orgId, ...input });
   return error ? { error: error.message } : { ok: true };
 }

@@ -165,7 +165,6 @@ export default async function EquipmentPage({
   const [canReport, canManage] = await Promise.all([hasPermission("equipment.report"), hasPermission("equipment.manage")]);
   const staff = await supabase.from("staff").select("id, first_name, last_name").eq("organization_id", org.organizationId).order("last_name");
   const requiredTypeIds = new Set(requirements.map((requirement) => requirement.equipment_type_id));
-  const exportHref = `/equipment/export${selectedTeamId ? `?team_id=${encodeURIComponent(selectedTeamId)}` : ""}`;
   const tString = (key: string) => t(key as never);
 
   return (
@@ -176,7 +175,7 @@ export default async function EquipmentPage({
           <h1 className="mt-1 text-2xl font-bold">{t("title")}</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t("description")}</p>
         </div>
-        {tab === "players" && <Link href={exportHref} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{t("export")}</Link>}
+        {tab === "players" && <form action="/equipment/export" method="get" target="_blank" className="flex flex-wrap items-end gap-2 rounded-lg border border-border p-3"><input type="hidden" name="team_id" value={selectedTeamId ?? ""} /><fieldset className="flex max-w-xl flex-wrap gap-2"><legend className="sr-only">{t("exportTypes")}</legend>{overview.types.map((type) => <label key={type.id} className="flex items-center gap-1 text-xs"><input type="checkbox" name="types" value={type.id} defaultChecked />{type.name}</label>)}<label className="flex items-center gap-1 text-xs"><input type="checkbox" name="only_missing" value="true" />{t("onlyMissing")}</label></fieldset><button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">{t("export")}</button></form>}
       </div>
 
       <nav className="flex flex-wrap gap-2 border-b border-border pb-3" aria-label={t("tabsLabel")}>
