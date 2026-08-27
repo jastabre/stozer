@@ -24,6 +24,8 @@ export const navConfigs: Record<string, NavItem[]> = {
   // §18: Youth Director - 5 sections
   youth_director: [
     { label: "navigation.home", href: "/dashboard", icon: "Home" },
+    { label: "navigation.teams", href: "/teams", icon: "Users" },
+    { label: "navigation.people", href: "/people", icon: "UsersRound" },
     { label: "navigation.youthAcademy", href: "/youth", icon: "GraduationCap" },
     { label: "navigation.calendar", href: "/calendar", icon: "Calendar" },
     { label: "navigation.documents", href: "/documents", icon: "FileText" },

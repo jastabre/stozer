@@ -87,6 +87,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       organization_memberships: {
         Row: {
@@ -110,6 +111,15 @@ export interface Database {
           role?: AppRole;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "organization_memberships_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       roles: {
         Row: {
@@ -127,6 +137,7 @@ export interface Database {
           name?: AppRole;
           display_name?: string;
         };
+        Relationships: [];
       };
       role_permissions: {
         Row: {
@@ -144,6 +155,15 @@ export interface Database {
           role?: AppRole;
           permission?: AppPermission;
         };
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_fkey";
+            columns: ["role"];
+            isOneToOne: false;
+            referencedRelation: "roles";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       plans: {
         Row: {
@@ -164,6 +184,7 @@ export interface Database {
           display_name?: string;
           is_active?: boolean;
         };
+        Relationships: [];
       };
       plan_entitlements: {
         Row: {
@@ -184,6 +205,15 @@ export interface Database {
           key?: string;
           value?: number;
         };
+        Relationships: [
+          {
+            foreignKeyName: "plan_entitlements_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "plans";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       subscriptions: {
         Row: {
@@ -213,6 +243,22 @@ export interface Database {
           trial_ends_at?: string | null;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "plans";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       seasons: {
         Row: {
@@ -245,6 +291,15 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "seasons_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       teams: {
         Row: {
@@ -274,6 +329,15 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "teams_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       athletes: {
         Row: {
@@ -321,6 +385,15 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "athletes_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       seasonal_memberships: {
         Row: {
@@ -353,6 +426,43 @@ export interface Database {
           status?: string;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "seasonal_memberships_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "seasonal_memberships_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "athletes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "seasonal_memberships_season_id_fkey";
+            columns: ["season_id"];
+            isOneToOne: false;
+            referencedRelation: "seasons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "seasonal_memberships_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+    };
+    Views: {};
+    Functions: {
+      claim_club_athlete_number: {
+        Args: { p_org_id: string };
+        Returns: number;
       };
     };
     Enums: {

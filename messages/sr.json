@@ -135,6 +135,39 @@
     "members": "Članovi",
     "logout": "Odjavi se"
   },
+  "players": {
+    "title": "Igraci",
+    "add": "Dodaj igraca",
+    "addTitle": "Novi igrac",
+    "firstName": "Ime",
+    "lastName": "Prezime",
+    "birthDate": "Datum rodjenja",
+    "gender": "Pol",
+    "genderMale": "Muski",
+    "genderFemale": "Zenski",
+    "genderOther": "Ostalo",
+    "genderNone": "Nije navedeno",
+    "nationality": "Nacionalnost",
+    "position": "Pozicija",
+    "federationId": "Federativni / registarski ID",
+    "team": "Tim",
+    "teamNone": "Bez tima",
+    "jersey": "Broj dresa",
+    "submit": "Dodaj",
+    "activeSeasonNone": "Nema aktivne sezone",
+    "table": {
+      "clubId": "Identifikacioni broj",
+      "name": "Ime",
+      "age": "Godine",
+      "team": "Tim",
+      "jersey": "Dres",
+      "position": "Pozicija"
+    },
+    "empty": {
+      "title": "Nema igraca",
+      "description": "Dodajte prvog igraca kako biste zapoceli svoj spisak."
+    }
+  },
   "subscription": {
     "free": "Free",
     "club": "Club",

@@ -135,6 +135,39 @@
     "members": "Members",
     "logout": "Sign Out"
   },
+  "players": {
+    "title": "Players",
+    "add": "Add player",
+    "addTitle": "New player",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "birthDate": "Birth date",
+    "gender": "Gender",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "genderOther": "Other",
+    "genderNone": "Not specified",
+    "nationality": "Nationality",
+    "position": "Position",
+    "federationId": "Federation / Registration ID",
+    "team": "Team",
+    "teamNone": "No team",
+    "jersey": "Jersey number",
+    "submit": "Add",
+    "activeSeasonNone": "No active season",
+    "table": {
+      "clubId": "Club ID",
+      "name": "Name",
+      "age": "Age",
+      "team": "Team",
+      "jersey": "Jersey",
+      "position": "Position"
+    },
+    "empty": {
+      "title": "No players",
+      "description": "Add your first player to start building your roster."
+    }
+  },
   "subscription": {
     "free": "Free",
     "club": "Club",
