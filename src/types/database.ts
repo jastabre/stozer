@@ -8,6 +8,8 @@ export type AppRole =
   | "admin_finance"
   | "super_admin";
 
+export type SportType = "football" | "basketball";
+
 export type AppPermission =
   | "teams.view"
   | "teams.create"
@@ -37,7 +39,13 @@ export type AppPermission =
   | "reports.view"
   | "reports.export"
   | "club_settings.manage"
-  | "notifications.manage";
+  | "notifications.manage"
+  | "seasons.view"
+  | "seasons.manage"
+  | "equipment.view"
+  | "equipment.report"
+  | "equipment.manage"
+  | "medical.view";
 
 export interface Database {
   public: {
@@ -51,6 +59,7 @@ export interface Database {
           language: string;
           currency: string;
           timezone: string | null;
+          club_athlete_counter: number;
           created_at: string;
           updated_at: string;
         };
@@ -62,6 +71,7 @@ export interface Database {
           language?: string;
           currency?: string;
           timezone?: string | null;
+          club_athlete_counter?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,6 +83,7 @@ export interface Database {
           language?: string;
           currency?: string;
           timezone?: string | null;
+          club_athlete_counter?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -203,10 +214,151 @@ export interface Database {
           created_at?: string;
         };
       };
+      seasons: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          starts_on: string;
+          ends_on: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          starts_on: string;
+          ends_on?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          starts_on?: string;
+          ends_on?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      teams: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          category: string;
+          sport: SportType;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          category: string;
+          sport?: SportType;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          category?: string;
+          sport?: SportType;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      athletes: {
+        Row: {
+          id: string;
+          organization_id: string;
+          first_name: string;
+          last_name: string;
+          birth_date: string;
+          gender: string | null;
+          nationality: string | null;
+          position: string | null;
+          photo_url: string | null;
+          federation_id: string | null;
+          club_athlete_number: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          first_name: string;
+          last_name: string;
+          birth_date: string;
+          gender?: string | null;
+          nationality?: string | null;
+          position?: string | null;
+          photo_url?: string | null;
+          federation_id?: string | null;
+          club_athlete_number: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          first_name?: string;
+          last_name?: string;
+          birth_date?: string;
+          gender?: string | null;
+          nationality?: string | null;
+          position?: string | null;
+          photo_url?: string | null;
+          federation_id?: string | null;
+          club_athlete_number?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      seasonal_memberships: {
+        Row: {
+          id: string;
+          organization_id: string;
+          athlete_id: string;
+          season_id: string;
+          team_id: string;
+          jersey_number: number | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          athlete_id: string;
+          season_id: string;
+          team_id: string;
+          jersey_number?: number | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          athlete_id?: string;
+          season_id?: string;
+          team_id?: string;
+          jersey_number?: number | null;
+          status?: string;
+          created_at?: string;
+        };
+      };
     };
     Enums: {
       app_role: AppRole;
       app_permission: AppPermission;
+      sport_type: SportType;
     };
   };
 }

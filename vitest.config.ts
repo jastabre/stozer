@@ -2,29 +2,52 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-export default defineConfig({
+// Shared plugins + alias applied to each project (Vitest 4 projects mode).
+const shared = {
   plugins: [react(), tsconfigPaths()],
-  test: {
-    environment: "node",
-    environmentMatchGlobs: [
-      // Component / app tests render with jsdom; lib tests run under node.
-      ["src/components/**/__tests__/**/*.test.ts", "jsdom"],
-      ["src/components/**/__tests__/**/*.test.tsx", "jsdom"],
-      ["src/app/**/__tests__/**/*.test.ts", "jsdom"],
-      ["src/app/**/__tests__/**/*.test.tsx", "jsdom"],
-    ],
-    setupFiles: ["./vitest.setup.ts"],
-    include: [
-      "src/lib/__tests__/**/*.test.ts",
-      "src/components/**/__tests__/**/*.test.ts",
-      "src/components/**/__tests__/**/*.test.tsx",
-      "src/app/**/__tests__/**/*.test.ts",
-      "src/app/**/__tests__/**/*.test.tsx",
-    ],
-  },
   resolve: {
     alias: {
       "@": "./src",
     },
+  },
+};
+
+export default defineConfig({
+  test: {
+    // Vitest 4 removed environmentMatchGlobs; route environments via projects.
+    // Lib tests run under node (default); component/app tests run under jsdom.
+    projects: [
+      {
+        ...shared,
+        test: {
+          name: "lib",
+          environment: "node",
+          include: ["src/lib/__tests__/**/*.test.ts"],
+        },
+      },
+      {
+        ...shared,
+        test: {
+          name: "components",
+          environment: "jsdom",
+          include: [
+            "src/components/**/__tests__/**/*.test.ts",
+            "src/components/**/__tests__/**/*.test.tsx",
+          ],
+        },
+      },
+      {
+        ...shared,
+        test: {
+          name: "app",
+          environment: "jsdom",
+          include: [
+            "src/app/**/__tests__/**/*.test.ts",
+            "src/app/**/__tests__/**/*.test.tsx",
+          ],
+        },
+      },
+    ],
+    setupFiles: ["./vitest.setup.ts"],
   },
 });
