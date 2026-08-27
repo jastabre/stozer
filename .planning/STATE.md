@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Club & People
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-08-27T16:18:48.501Z"
-state_head: 8c9b06084df45f00456ba11048b553acffe8d949
+stopped_at: Completed 02-06-PLAN.md
+last_updated: "2026-08-27T21:27:03.625Z"
+state_head: 6c79e18738876926691da28bb7ed070e9c1d77d0
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 9
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 **Phase:** 2 (Club & People) — EXECUTING
-**Plan:** 4 of 8
+**Plan:** 5 of 8
 **Status:** Ready to execute
 **Progress:** ████░░░░░░ [░░░░░░░░░░] 0% (Phase 1 of 7 complete)
 
@@ -43,6 +43,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 | Phase 02-club-people P01 | 8min | 3 tasks | 8 files |
 | Phase 02-club-people P02 | 65min | 3 tasks | 21 files |
 | Phase 02-club-people P03 | 16min | 3 tasks | 14 files |
+| Phase 02 P06 | 17 min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 - [Phase 2]: 'Current' registration/medical record = created_at DESC, first wins (not earliest-expiry) — chosen in 02-03, applied consistently to profile lists + team overview (8c9b060) so views never disagree.
 - [Phase 2]: Medical examination writes ride existing registrations.manage (no medical.manage); reads = registrations.view OR medical.view (coach D-38 visibility) — no app_permission additions in 00005.
 - [Phase 2]: registrations.document_id linkage UI deferred to 02-05 (documents table = migration 00006, W1 cross-plan guard); column created + writable now, dropdown population lands with documents module.
+- [Phase 2]: Phase 2 Plan 6 uses migration 00008 for import_jobs because 00004 is consumed and downstream plans reserve 00006/00007.
+- [Phase 2]: Import jobs persist parsed rows, mappings, duplicate decisions, and processed_rows so server batches are stateless and retries cannot replay writes.
+- [Phase 2]: Import parsers use strict csv-parse and exceljs, never evaluate formulas, and keep null-DOB duplicate matching disabled.
 
 ### Lessons Learned
 
@@ -89,9 +93,9 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 ## Session Continuity
 
-**Stopped at:** Completed 02-03-PLAN.md
+**Stopped at:** Completed 02-06-PLAN.md
 
-**Last session:** 2026-08-27T16:18:48.474Z
+**Last session:** 2026-08-27T21:27:03.594Z
 **Resume file:** None
 **Next action:** Run `/gsd-plan-phase 2` to plan Phase 2 (Teams & People / Club & People)
 
