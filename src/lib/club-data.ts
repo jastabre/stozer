@@ -45,6 +45,31 @@ export interface OrganizationSettings {
   warning_threshold_days: number;
 }
 
+export interface StaffTeamAssignment {
+  staff_id: string;
+  team_id: string;
+}
+
+/**
+ * Read staff assignments for one org season. Keeping this query org- and
+ * season-scoped gives rollover a small, explicit input and avoids carrying
+ * assignments from an archived season into the next one accidentally.
+ */
+export async function listStaffTeamsForSeason(
+  supabase: Supabase,
+  orgId: string,
+  seasonId: string
+): Promise<StaffTeamAssignment[]> {
+  const { data, error } = await supabase
+    .from("staff_teams")
+    .select("staff_id, team_id")
+    .eq("organization_id", orgId)
+    .eq("season_id", seasonId);
+
+  if (error) return [];
+  return (data ?? []) as StaffTeamAssignment[];
+}
+
 /**
  * One athlete's row in the team-level registration/medical overview (D-38).
  * registration/medical are NEVER merged (D-40) — each carries its own derived

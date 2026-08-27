@@ -19,6 +19,16 @@ export interface CarryForward {
   memberships: PrevMembership[];
 }
 
+export interface PrevStaffTeam {
+  staffId: string;
+  teamId: string;
+}
+
+export interface StaffCarryForward {
+  seasonId: string;
+  staffTeams: PrevStaffTeam[];
+}
+
 /**
  * Build the new season's membership set from the previous season's.
  *
@@ -39,6 +49,20 @@ export function buildCarryForward(
       prevTeamId: moves[m.athleteId] ?? m.prevTeamId,
       jerseyNumber: m.jerseyNumber,
     })),
+  };
+}
+
+/**
+ * Carry staff/team assignments into a new season unchanged. Unlike athletes,
+ * staff assignments are not part of the guided move review (D-03).
+ */
+export function buildStaffCarryForward(
+  prevStaffTeams: PrevStaffTeam[],
+  newSeasonId: string
+): StaffCarryForward {
+  return {
+    seasonId: newSeasonId,
+    staffTeams: prevStaffTeams.map((assignment) => ({ ...assignment })),
   };
 }
 

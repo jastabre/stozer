@@ -11,12 +11,15 @@ import {
 import {
   getActiveSeason,
   listAthletesWithCurrentMembership,
+  listStaffTeamsForSeason,
   listTeams,
 } from "@/lib/club-data";
 import {
   buildCarryForward,
+  buildStaffCarryForward,
   validateRollover,
   type PrevMembership,
+  type PrevStaffTeam,
 } from "@/lib/rollover";
 
 const seasonSchema = z.object({
@@ -66,12 +69,13 @@ export async function createSeason(formData: FormData) {
  *   3. insert the new active season    (INSERT ... is_active=true)
  *   4. build the carry-forward from the previous season's memberships + moves
  *   5. validate team references and bulk-insert the new memberships
+ *   6. carry staff_teams assignments into the new season (D-03)
  *
  * Atomicity of the single-active invariant is BACKSTOPPED at the DB by the
  * partial unique index one_active_season_per_org (Pattern 1, T-02-02-04) — if
  * archiving were ever skipped the insert would fail rather than double-activate.
- * The staff_teams clone is NOT part of this transaction (migration 00005 ships
- * the table in plan 02-04, whose Task 2 extends this action per D-03).
+ * Staff assignments carry over unchanged; the unique constraint and
+ * ignoreDuplicates make retries idempotent.
  */
 export async function startNewSeason(formData: FormData) {
   const org = await requireOrganization();
@@ -103,13 +107,24 @@ export async function startNewSeason(formData: FormData) {
   const prevAthletes = prevSeason
     ? await listAthletesWithCurrentMembership(supabase, orgId, prevSeason.id)
     : [];
+  const prevStaffTeams: PrevStaffTeam[] = prevSeason
+    ? (await listStaffTeamsForSeason(supabase, orgId, prevSeason.id)).map(
+        (assignment) => ({
+          staffId: assignment.staff_id,
+          teamId: assignment.team_id,
+        })
+      )
+    : [];
 
   // (2) Archive the old active season.
-  await supabase
+  const { error: archiveError } = await supabase
     .from("seasons")
     .update({ is_active: false })
     .eq("organization_id", orgId)
     .eq("is_active", true);
+  if (archiveError) {
+    throw new Error("Greška pri arhiviranju prethodne sezone: " + archiveError.message);
+  }
 
   // (3) Insert the new active season.
   const { data: newSeason, error: seasonError } = await supabase
@@ -162,6 +177,27 @@ export async function startNewSeason(formData: FormData) {
 
     if (membershipError) {
       throw new Error("Greška pri prenosu članstava: " + membershipError.message);
+    }
+  }
+
+  // (6) Staff keep their team assignments after rollover (D-03). The insert
+  // is intentionally idempotent so a retried action cannot duplicate rows.
+  const staffCarryForward = buildStaffCarryForward(prevStaffTeams, newSeason.id);
+  if (staffCarryForward.staffTeams.length > 0) {
+    const { error: staffTeamError } = await supabase
+      .from("staff_teams")
+      .upsert(
+        staffCarryForward.staffTeams.map((assignment) => ({
+          organization_id: orgId,
+          staff_id: assignment.staffId,
+          team_id: assignment.teamId,
+          season_id: staffCarryForward.seasonId,
+        })),
+        { onConflict: "staff_id,team_id,season_id", ignoreDuplicates: true }
+      );
+
+    if (staffTeamError) {
+      throw new Error("Greška pri prenosu timova osoblja: " + staffTeamError.message);
     }
   }
 

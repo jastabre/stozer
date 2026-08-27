@@ -196,7 +196,7 @@
       "sections": {
         "registrations": "Registracije",
         "medical": "Medicina",
-        "guardians": "Stari",
+        "guardians": "Staratelji",
         "documents": "Dokumenti",
         "contracts": "Ugovori",
         "equipment": "Oprema"
@@ -229,7 +229,7 @@
         "red": "Istekao / nije registrovan"
       }
     },
-    "medical": {
+      "medical": {
       "back": "Nazad na igra",
       "title": "Medicinski pregledi",
       "privacyNote": "Samo administrativni podaci o sportskoj podobnosti.",
@@ -255,7 +255,86 @@
         "expiring_soon": "Ističe uskoro",
         "expired": "Istekao"
       }
+      ,"guardians": {
+        "back": "Nazad na igrača",
+        "title": "Staratelji",
+        "description": "Čuvajte kontakt podatke staratelja maloletnog igrača na jednom mestu.",
+        "empty": "Nema evidentiranih staratelja.",
+        "name": "Ime i prezime",
+        "relationship": "Odnos",
+        "phone": "Telefon",
+        "email": "Email",
+        "preferredContact": "Preferirani kontakt",
+        "primary": "Primarni",
+        "notPrimary": "Nije primarni",
+        "save": "Sačuvaj staratelja",
+        "add": "Dodaj staratelja",
+        "edit": "Izmeni",
+        "delete": "Obriši",
+        "contactMethods": {
+          "phone": "Telefon",
+          "email": "Email",
+          "sms": "SMS",
+          "other": "Drugo"
+        },
+        "error": "Staratelji nisu sačuvani. Proverite da je samo jedan označen kao primarni."
+      }
     }
+  },
+  "people": {
+    "eyebrow": "Ljudi kluba",
+    "title": "Osoblje",
+    "add": "Dodaj člana osoblja",
+    "addSubmit": "Kreiraj profil osoblja",
+    "firstName": "Ime",
+    "lastName": "Prezime",
+    "titleField": "Funkcija",
+    "phone": "Telefon",
+    "email": "Email",
+    "photoUrl": "URL fotografije",
+    "startDate": "Početak angažmana",
+    "endDate": "Kraj angažmana",
+    "notes": "Napomene",
+    "profile": "Profil",
+    "editProfile": "Izmeni profil",
+    "teams": "Dodeljeni timovi",
+    "saveTeams": "Sačuvaj timove",
+    "noActiveSeason": "Nema aktivne sezone za dodelu timova.",
+    "noTeams": "Nema dodeljenih timova",
+    "notSet": "Nije navedeno",
+    "licenses": "Profesionalne licence",
+    "licenseHint": "Istek licence koristi zajednički prag upozorenja kluba.",
+    "noLicenses": "Nema evidentiranih licenci.",
+    "licenseType": "Vrsta licence",
+    "licenseNumber": "Broj licence",
+    "validUntil": "Važi do",
+    "addLicense": "Dodaj licencu",
+    "account": "Korisnički nalog",
+    "accountEmail": "Email postojećeg korisnika",
+    "linkAccount": "Poveži nalog",
+    "linked": "Povezan",
+    "notLinked": "Nije povezan",
+    "linkedAccount": "Profil je povezan sa korisničkim nalogom.",
+    "unlinkedAccount": "Profil može postojati bez Stožer naloga.",
+    "status": {
+      "green": "Važeća",
+      "yellow": "Ističe uskoro",
+      "red": "Istekla / nedostaje"
+    },
+    "roles": {
+      "club_president": "Predsednik kluba",
+      "youth_director": "Direktor omladine",
+      "coach": "Trener",
+      "admin_finance": "Admin finansija",
+      "super_admin": "Super admin"
+    },
+    "empty": {
+      "title": "Nema osoblja",
+      "description": "Kreirajte profil za trenere, koordinatore i volontere."
+    },
+    "back": "Nazad na osoblje",
+    "delete": "Obriši profil",
+    "save": "Sačuvaj"
   },
   "import": {
     "eyebrow": "Alati za spisak",

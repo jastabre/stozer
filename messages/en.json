@@ -229,7 +229,7 @@
         "red": "Expired / not registered"
       }
     },
-    "medical": {
+      "medical": {
       "back": "Back to player",
       "title": "Medical examinations",
       "privacyNote": "Administrative sports-clearance information only.",
@@ -255,7 +255,86 @@
         "expiring_soon": "Expiring soon",
         "expired": "Expired"
       }
+      ,"guardians": {
+        "back": "Back to player",
+        "title": "Guardians",
+        "description": "Keep the contact details for a minor player's guardians in one place.",
+        "empty": "No guardians recorded.",
+        "name": "Full name",
+        "relationship": "Relationship",
+        "phone": "Phone",
+        "email": "Email",
+        "preferredContact": "Preferred contact",
+        "primary": "Primary",
+        "notPrimary": "Not primary",
+        "save": "Save guardian",
+        "add": "Add guardian",
+        "edit": "Edit",
+        "delete": "Delete",
+        "contactMethods": {
+          "phone": "Phone",
+          "email": "Email",
+          "sms": "SMS",
+          "other": "Other"
+        },
+        "error": "Could not save guardians. Make sure only one guardian is primary."
+      }
     }
+  },
+  "people": {
+    "eyebrow": "Club people",
+    "title": "Staff",
+    "add": "Add staff member",
+    "addSubmit": "Create staff profile",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "titleField": "Title",
+    "phone": "Phone",
+    "email": "Email",
+    "photoUrl": "Photo URL",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "notes": "Notes",
+    "profile": "Profile",
+    "editProfile": "Edit profile",
+    "teams": "Team assignments",
+    "saveTeams": "Save teams",
+    "noActiveSeason": "No active season to assign teams to.",
+    "noTeams": "No teams assigned",
+    "notSet": "Not set",
+    "licenses": "Professional licenses",
+    "licenseHint": "License expiry uses the club's shared warning threshold.",
+    "noLicenses": "No licenses recorded.",
+    "licenseType": "License type",
+    "licenseNumber": "License number",
+    "validUntil": "Valid until",
+    "addLicense": "Add license",
+    "account": "Login account",
+    "accountEmail": "Existing user email",
+    "linkAccount": "Link account",
+    "linked": "Linked",
+    "notLinked": "Not linked",
+    "linkedAccount": "This profile is linked to a login account.",
+    "unlinkedAccount": "This profile can exist without a Stozer login.",
+    "status": {
+      "green": "Valid",
+      "yellow": "Expiring soon",
+      "red": "Expired / missing"
+    },
+    "roles": {
+      "club_president": "Club president",
+      "youth_director": "Youth director",
+      "coach": "Coach",
+      "admin_finance": "Finance admin",
+      "super_admin": "Super admin"
+    },
+    "empty": {
+      "title": "No staff yet",
+      "description": "Create a staff profile for coaches, coordinators, and volunteers."
+    },
+    "back": "Back to staff",
+    "delete": "Delete profile",
+    "save": "Save"
   },
   "import": {
     "eyebrow": "Roster tools",

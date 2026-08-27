@@ -3,6 +3,8 @@ import {
   buildCarryForward,
   validateRollover,
   type PrevMembership,
+  buildStaffCarryForward,
+  type PrevStaffTeam,
 } from "@/lib/rollover";
 
 const prev: PrevMembership[] = [
@@ -71,5 +73,27 @@ describe("validateRollover", () => {
       { athleteId: "a2", prevTeamId: "x2", jerseyNumber: 5 },
     ];
     expect(validateRollover(bad, teams)).toHaveLength(2);
+  });
+});
+
+describe("buildStaffCarryForward", () => {
+  const previous: PrevStaffTeam[] = [
+    { staffId: "coach-1", teamId: "u15" },
+    { staffId: "coach-1", teamId: "u17" },
+    { staffId: "coach-2", teamId: "u15" },
+  ];
+
+  it("maps every previous staff assignment to the new season", () => {
+    expect(buildStaffCarryForward(previous, "s-2027")).toEqual({
+      seasonId: "s-2027",
+      staffTeams: previous,
+    });
+  });
+
+  it("returns no assignments when the previous season has none", () => {
+    expect(buildStaffCarryForward([], "s-2027")).toEqual({
+      seasonId: "s-2027",
+      staffTeams: [],
+    });
   });
 });
