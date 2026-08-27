@@ -21,6 +21,19 @@ export type DocumentType =
 
 export type ContractStatus = "draft" | "active" | "terminated" | "expired";
 
+export type EquipmentItemState =
+  | "missing"
+  | "issued"
+  | "returned"
+  | "lost"
+  | "damaged";
+
+export type EquipmentRequestStatus =
+  | "requested"
+  | "approved"
+  | "purchased"
+  | "rejected";
+
 export type Json =
   | string
   | number
@@ -1030,6 +1043,308 @@ export interface Database {
           }
         ];
       };
+      equipment_types: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          size_model: "single" | "upper_lower";
+          enabled: boolean;
+          is_club_property: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          size_model: "single" | "upper_lower";
+          enabled?: boolean;
+          is_club_property?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          size_model?: "single" | "upper_lower";
+          enabled?: boolean;
+          is_club_property?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "equipment_types_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      team_equipment_requirements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string;
+          equipment_type_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id: string;
+          equipment_type_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string;
+          equipment_type_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_equipment_requirements_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_equipment_requirements_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_equipment_requirements_equipment_type_id_fkey";
+            columns: ["equipment_type_id"];
+            isOneToOne: false;
+            referencedRelation: "equipment_types";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      athlete_equipment: {
+        Row: {
+          id: string;
+          organization_id: string;
+          athlete_id: string;
+          equipment_type_id: string;
+          size_value: string | null;
+          size_value_upper: string | null;
+          state: EquipmentItemState;
+          issued_at: string | null;
+          returned_at: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          athlete_id: string;
+          equipment_type_id: string;
+          size_value?: string | null;
+          size_value_upper?: string | null;
+          state?: EquipmentItemState;
+          issued_at?: string | null;
+          returned_at?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          athlete_id?: string;
+          equipment_type_id?: string;
+          size_value?: string | null;
+          size_value_upper?: string | null;
+          state?: EquipmentItemState;
+          issued_at?: string | null;
+          returned_at?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "athlete_equipment_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "athlete_equipment_athlete_id_fkey";
+            columns: ["athlete_id"];
+            isOneToOne: false;
+            referencedRelation: "athletes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "athlete_equipment_equipment_type_id_fkey";
+            columns: ["equipment_type_id"];
+            isOneToOne: false;
+            referencedRelation: "equipment_types";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      team_equipment: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string | null;
+          responsible_staff_id: string | null;
+          item_name: string;
+          quantity: number;
+          state: EquipmentItemState;
+          season_id: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id?: string | null;
+          responsible_staff_id?: string | null;
+          item_name: string;
+          quantity?: number;
+          state?: EquipmentItemState;
+          season_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string | null;
+          responsible_staff_id?: string | null;
+          item_name?: string;
+          quantity?: number;
+          state?: EquipmentItemState;
+          season_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_equipment_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_equipment_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_equipment_responsible_staff_id_fkey";
+            columns: ["responsible_staff_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_equipment_season_id_fkey";
+            columns: ["season_id"];
+            isOneToOne: false;
+            referencedRelation: "seasons";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      equipment_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          team_id: string | null;
+          item_name: string;
+          quantity: number;
+          note: string | null;
+          requester_staff_id: string | null;
+          status: EquipmentRequestStatus;
+          decided_by_staff_id: string | null;
+          decided_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          team_id?: string | null;
+          item_name: string;
+          quantity?: number;
+          note?: string | null;
+          requester_staff_id?: string | null;
+          status?: EquipmentRequestStatus;
+          decided_by_staff_id?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          team_id?: string | null;
+          item_name?: string;
+          quantity?: number;
+          note?: string | null;
+          requester_staff_id?: string | null;
+          status?: EquipmentRequestStatus;
+          decided_by_staff_id?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "equipment_requests_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipment_requests_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipment_requests_requester_staff_id_fkey";
+            columns: ["requester_staff_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipment_requests_decided_by_staff_id_fkey";
+            columns: ["decided_by_staff_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {
@@ -1038,12 +1353,14 @@ export interface Database {
         Returns: number;
       };
     };
-    Enums: {
+      Enums: {
       app_role: AppRole;
       app_permission: AppPermission;
       sport_type: SportType;
       document_type: DocumentType;
-      contract_status: ContractStatus;
-    };
+        contract_status: ContractStatus;
+        equipment_item_state: EquipmentItemState;
+        equipment_request_status: EquipmentRequestStatus;
+      };
   };
 }
