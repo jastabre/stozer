@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createBrowserClient } from "@/lib/supabase/browser";
+import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Menu,
   X,
@@ -11,20 +11,20 @@ import {
   Users,
   Calendar,
   Settings,
-  LogOut,
 } from "lucide-react";
 import { UserMenu } from "./UserMenu";
 
-const NAV_ITEMS = [
-  { label: "Početna", href: "/dashboard", icon: Home },
-  { label: "Timovi", href: "/teams", icon: Users },
-  { label: "Kalendar", href: "/calendar", icon: Calendar },
-  { label: "Podešavanja", href: "/settings", icon: Settings },
-];
-
-export function Sidebar({ orgId }: { orgId: string }) {
+export function Sidebar({ orgId: _orgId }: { orgId: string }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const t = useTranslations("navigation");
+
+  const NAV_ITEMS = [
+    { label: t("home"), href: "/dashboard", icon: Home },
+    { label: t("teams"), href: "/teams", icon: Users },
+    { label: t("calendar"), href: "/calendar", icon: Calendar },
+    { label: t("settings"), href: "/settings", icon: Settings },
+  ];
 
   return (
     <>
@@ -51,7 +51,6 @@ export function Sidebar({ orgId }: { orgId: string }) {
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Header */}
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
           <span className="text-lg font-bold">STOŽER</span>
           <button
@@ -63,7 +62,6 @@ export function Sidebar({ orgId }: { orgId: string }) {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 space-y-1 p-3">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname?.startsWith(item.href);
@@ -85,7 +83,6 @@ export function Sidebar({ orgId }: { orgId: string }) {
           })}
         </nav>
 
-        {/* User menu */}
         <div className="border-t border-border p-3">
           <UserMenu />
         </div>

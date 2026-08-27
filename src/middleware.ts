@@ -1,8 +1,12 @@
+import createMiddleware from "next-intl/middleware";
+import { routing } from "@/i18n/routing";
 import { NextResponse, type NextRequest } from "next/server";
 import { createMiddlewareClient } from "@/lib/supabase/middleware";
 
-// Routes that don't require authentication
-const publicRoutes = ["/login", "/register", "/verify", "/reset-password", "/"];
+const handleI18nRouting = createMiddleware(routing);
+
+// Routes that don't require authentication (public)
+const publicPathnames = ["/login", "/register", "/verify", "/reset-password"];
 
 // Static and API routes to skip
 const excludedPaths = ["/api", "/_next", "/favicon.ico", "/icons", "/offline"];
@@ -10,21 +14,29 @@ const excludedPaths = ["/api", "/_next", "/favicon.ico", "/icons", "/offline"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip excluded paths
+  // Skip excluded paths entirely
   if (excludedPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Skip public routes
-  if (publicRoutes.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    return NextResponse.next();
+  // First, handle i18n routing (locale detection + redirect)
+  const i18nResponse = await handleI18nRouting(request);
+
+  // Check if this is a public path (after locale prefix removal)
+  const pathnameWithoutLocale = pathname.replace(/^\/(sr|en)/, "") || "/";
+  const isPublic = publicPathnames.some(
+    (p) => pathnameWithoutLocale === p || pathnameWithoutLocale.startsWith(p + "/")
+  );
+
+  if (isPublic) {
+    return i18nResponse;
   }
 
+  // For non-public routes, check authentication
   const { supabase, supabaseResponse } = await createMiddlewareClient(
     request
   );
 
-  // Refresh session (important for Server Components)
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -1,0 +1,159 @@
+{
+  "common": {
+    "appName": "STOŽER",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "confirm": "Confirm",
+    "close": "Close",
+    "search": "Search...",
+    "noResults": "No results",
+    "error": "Error",
+    "success": "Success",
+    "required": "Required"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Sign in to STOŽER",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "Your password",
+      "submit": "Sign In",
+      "loading": "Signing in...",
+      "forgotPassword": "Forgot your password?",
+      "forgotPasswordLink": "Reset password",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Sign up"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Sign up for STOŽER",
+      "name": "Full Name",
+      "namePlaceholder": "Your name",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "At least 8 characters",
+      "submit": "Sign Up",
+      "loading": "Registering...",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "emailSent": "Check your email",
+      "emailSentDescription": "We've sent you a verification email. Check your inbox and follow the link to activate your account."
+    },
+    "verify": {
+      "title": "Account Verification",
+      "subtitle": "Please wait..."
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter your email address and we'll send you a reset link",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "submit": "Send Link",
+      "loading": "Sending...",
+      "backToLogin": "Back to sign in",
+      "emailSent": "Email sent",
+      "emailSentDescription": "We've sent you a password reset link. Check your inbox."
+    },
+    "validation": {
+      "emailRequired": "Please enter a valid email address",
+      "passwordMin": "Password must be at least 8 characters",
+      "passwordMax": "Password is too long",
+      "nameMin": "Name must be at least 2 characters",
+      "nameMax": "Name is too long",
+      "passwordConfirm": "Password is required",
+      "passwordMismatch": "Passwords don't match"
+    }
+  },
+  "onboarding": {
+    "welcome": "Welcome to STOŽER",
+    "subtitle": "Set up your club in a few steps",
+    "clubName": "Club Name",
+    "clubNamePlaceholder": "e.g. FK Partizan",
+    "sport": "Sport",
+    "sportFootball": "Football",
+    "sportBasketball": "Basketball",
+    "country": "Country",
+    "countryPlaceholder": "Select a country",
+    "countryRS": "Serbia",
+    "countryBA": "Bosnia and Herzegovina",
+    "countryHR": "Croatia",
+    "countryME": "Montenegro",
+    "countryMK": "North Macedonia",
+    "countrySI": "Slovenia",
+    "countryDE": "Germany",
+    "language": "Language",
+    "languageSr": "Serbian",
+    "languageEn": "English",
+    "submit": "Create Club",
+    "loading": "Creating club...",
+    "validation": {
+      "clubNameMin": "Club name must be at least 2 characters",
+      "clubNameMax": "Club name is too long",
+      "sportRequired": "Please select a sport",
+      "countryRequired": "Country is required",
+      "languageRequired": "Please select a language"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome to {name}",
+    "welcomeDefault": "Welcome to STOŽER",
+    "subtitle": "Your club is ready to go",
+    "trial": {
+      "daysLeft": "Trial period: {count, plural, one {# day} other {# days}} left",
+      "currentPlan": "Current plan: {plan} (trial period)"
+    },
+    "emptyState": {
+      "title": "Get started with setup",
+      "description": "Add your first team, players, and staff to start using STOŽER.",
+      "action": "Add Team"
+    }
+  },
+  "navigation": {
+    "home": "Home",
+    "teams": "Teams",
+    "people": "People",
+    "calendar": "Calendar",
+    "finances": "Finances",
+    "documents": "Documents",
+    "reports": "Reports",
+    "club": "Club",
+    "youthAcademy": "Youth Academy",
+    "today": "Today",
+    "team": "Team",
+    "more": "More",
+    "settings": "Settings",
+    "members": "Members",
+    "logout": "Sign Out"
+  },
+  "subscription": {
+    "free": "Free",
+    "club": "Club",
+    "pro": "Pro",
+    "trial": "Trial",
+    "upgrade": "Upgrade",
+    "upgradeTo": "Upgrade to {plan}",
+    "lockedFeature": "Locked Feature",
+    "lockedDescription": "This feature is available on {plan} plan or higher.",
+    "trialEndsIn": "Trial ends in {count} days"
+  },
+  "emptyState": {
+    "noTeams": {
+      "title": "No Teams",
+      "description": "Create your first team to get started."
+    },
+    "noPlayers": {
+      "title": "No Players",
+      "description": "Add players to your team."
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "common": {
+    "appName": "STOŽER",
+    "loading": "Učitavanje...",
+    "save": "Sačuvaj",
+    "cancel": "Otkaži",
+    "delete": "Obriši",
+    "edit": "Izmeni",
+    "create": "Kreiraj",
+    "submit": "Pošalji",
+    "back": "Nazad",
+    "next": "Dalje",
+    "confirm": "Potvrdi",
+    "close": "Zatvori",
+    "search": "Pretraga...",
+    "noResults": "Nema rezultata",
+    "error": "Greška",
+    "success": "Uspeh",
+    "required": "Obavezno"
+  },
+  "auth": {
+    "login": {
+      "title": "Prijava",
+      "subtitle": "Prijavite se na STOŽER",
+      "email": "Email",
+      "emailPlaceholder": "vas@email.com",
+      "password": "Lozinka",
+      "passwordPlaceholder": "Vaša lozinka",
+      "submit": "Prijavi se",
+      "loading": "Prijavljivanje...",
+      "forgotPassword": "Zaboravili ste lozinku?",
+      "forgotPasswordLink": "Resetujte lozinku",
+      "noAccount": "Nemate nalog?",
+      "registerLink": "Registrujte se"
+    },
+    "register": {
+      "title": "Kreiraj nalog",
+      "subtitle": "Registrujte se za STOŽER",
+      "name": "Ime i prezime",
+      "namePlaceholder": "Vaše ime",
+      "email": "Email",
+      "emailPlaceholder": "vas@email.com",
+      "password": "Lozinka",
+      "passwordPlaceholder": "Najmanje 8 karaktera",
+      "submit": "Registruj se",
+      "loading": "Registracija...",
+      "hasAccount": "Već imate nalog?",
+      "loginLink": "Prijavite se",
+      "emailSent": "Proverite email",
+      "emailSentDescription": "Poslali smo vam email za verifikaciju. Proverite svoje sanduče i pratite link za aktivaciju naloga."
+    },
+    "verify": {
+      "title": "Verifikacija naloga",
+      "subtitle": "Molimo sačekajte..."
+    },
+    "resetPassword": {
+      "title": "Resetovanje lozinke",
+      "subtitle": "Unesite svoju email adresu i poslaćemo vam link za resetovanje",
+      "email": "Email",
+      "emailPlaceholder": "vas@email.com",
+      "submit": "Pošalji link",
+      "loading": "Šalje se...",
+      "backToLogin": "Nazad na prijavu",
+      "emailSent": "Email poslat",
+      "emailSentDescription": "Poslali smo vam link za resetovanje lozinke. Proverite svoje sanduče."
+    },
+    "validation": {
+      "emailRequired": "Unesite validnu email adresu",
+      "passwordMin": "Lozinka mora imati najmanje 8 karaktera",
+      "passwordMax": "Lozinka je predugačka",
+      "nameMin": "Ime mora imati najmanje 2 karaktera",
+      "nameMax": "Ime je predugačko",
+      "passwordConfirm": "Lozinka je obavezna",
+      "passwordMismatch": "Lozinke se ne poklapaju"
+    }
+  },
+  "onboarding": {
+    "welcome": "Dobrodošli u STOŽER",
+    "subtitle": "Podesite svoj klub za nekoliko koraka",
+    "clubName": "Ime kluba",
+    "clubNamePlaceholder": "npr. FK Partizan",
+    "sport": "Sport",
+    "sportFootball": "Fudbal",
+    "sportBasketball": "Košarka",
+    "country": "Država",
+    "countryPlaceholder": "Izaberite državu",
+    "countryRS": "Srbija",
+    "countryBA": "Bosna i Hercegovina",
+    "countryHR": "Hrvatska",
+    "countryME": "Crna Gora",
+    "countryMK": "Severna Makedonija",
+    "countrySI": "Slovenija",
+    "countryDE": "Nemačka",
+    "language": "Jezik",
+    "languageSr": "Srpski",
+    "languageEn": "English",
+    "submit": "Kreiraj klub",
+    "loading": "Kreiranje kluba...",
+    "validation": {
+      "clubNameMin": "Ime kluba mora imati najmanje 2 karaktera",
+      "clubNameMax": "Ime kluba je predugačko",
+      "sportRequired": "Izaberite sport",
+      "countryRequired": "Država je obavezna",
+      "languageRequired": "Izaberite jezik"
+    }
+  },
+  "dashboard": {
+    "welcome": "Dobrodošli u {name}",
+    "welcomeDefault": "Dobrodošli u STOŽER",
+    "subtitle": "Vaš klub je spreman za rad",
+    "trial": {
+      "daysLeft": "Probni period: još {count, plural, one {# dan} few {# dana} other {# dana}}",
+      "currentPlan": "Trenutni plan: {plan} (probni period)"
+    },
+    "emptyState": {
+      "title": "Počnite sa podešavanjem",
+      "description": "Dodajte svoj prvi tim, igrače i osoblje kako biste počeli da koristite STOŽER.",
+      "action": "Dodaj tim"
+    }
+  },
+  "navigation": {
+    "home": "Početna",
+    "teams": "Timovi",
+    "people": "Ljudi",
+    "calendar": "Kalendar",
+    "finances": "Finansije",
+    "documents": "Dokumenta",
+    "reports": "Izveštaji",
+    "club": "Klub",
+    "youthAcademy": "Omladinska škola",
+    "today": "Danas",
+    "team": "Tim",
+    "more": "Više",
+    "settings": "Podešavanja",
+    "members": "Članovi",
+    "logout": "Odjavi se"
+  },
+  "subscription": {
+    "free": "Free",
+    "club": "Club",
+    "pro": "Pro",
+    "trial": "Probni period",
+    "upgrade": "Nadogradi",
+    "upgradeTo": "Nadogradi na {plan}",
+    "lockedFeature": "Zaključana funkcija",
+    "lockedDescription": "Ova funkcija je dostupna samo na {plan} planu ili višem.",
+    "trialEndsIn": "Probni period ističe za {count} dana"
+  },
+  "emptyState": {
+    "noTeams": {
+      "title": "Nema timova",
+      "description": "Kreirajte svoj prvi tim da biste počeli."
+    },
+    "noPlayers": {
+      "title": "Nema igrača",
+      "description": "Dodajte igrače u svoj tim."
+    }
+  }
+}
