@@ -101,7 +101,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Last session:** 2026-08-27T21:55:41.034Z
 **Resume file:** None
-**Next action:** Run `/gsd-plan-phase 2` to plan Phase 2 (Teams & People / Club & People)
+**Next action:** Run `/gsd-execute-phase 02-05` to continue the sequential Club & People plans
 
 ---
 *Last updated: 2026-08-27 after Phase 2 discuss-phase*
