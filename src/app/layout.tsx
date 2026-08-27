@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   description:
     "Professional SaaS platform for managing sports clubs, teams, players, and finances.",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "STOŽER",
+  },
 };
 
 export const viewport: Viewport = {
@@ -28,6 +33,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="sr" className={`${inter.variable} h-full`}>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+      </head>
       <body className="min-h-full bg-background text-foreground antialiased">
         {children}
       </body>

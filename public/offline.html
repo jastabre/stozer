@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STOŽER — Offline</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #fafafa;
+      color: #1a1a1a;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    p { color: #666; margin-bottom: 1.5rem; }
+    button {
+      padding: 0.75rem 1.5rem;
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    button:hover { background: #333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>STOŽER</h1>
+    <p>Niste povezani sa internetom.</p>
+    <p>Molimo proverite svoju konekciju i pokušajte ponovo.</p>
+    <button onclick="window.location.reload()">Pokušaj ponovo</button>
+  </div>
+</body>
+</html>
