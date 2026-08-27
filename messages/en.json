@@ -278,6 +278,72 @@
           "other": "Other"
         },
         "error": "Could not save guardians. Make sure only one guardian is primary."
+      },
+      "documents": {
+        "back": "Back to player",
+        "title": "Documents",
+        "privateNote": "Files are private and downloads use a time-limited secure link.",
+        "empty": "No documents recorded.",
+        "add": "Upload document",
+        "file": "File",
+        "type": "Document type",
+        "customType": "Custom type",
+        "customTypePlaceholder": "e.g. consent form",
+        "issuedAt": "Issued on",
+        "expiresAt": "Expires on",
+        "notes": "Notes",
+        "upload": "Upload",
+        "issued": "issued {date}",
+        "expires": "expires {date}",
+        "noExpiry": "no expiry",
+        "download": "Download",
+        "opening": "Opening...",
+        "downloadError": "Could not open document",
+        "delete": "Delete",
+        "types": {
+          "registration": "Registration",
+          "contract": "Contract",
+          "medical": "Medical",
+          "insurance": "Insurance",
+          "identity": "Identity",
+          "federation": "Federation",
+          "custom": "Custom"
+        },
+        "tones": {
+          "green": "Valid",
+          "yellow": "Expiring soon",
+          "red": "Expired"
+        }
+      },
+      "contracts": {
+        "back": "Back to player",
+        "title": "Contracts",
+        "empty": "No contracts recorded.",
+        "add": "Add contract",
+        "edit": "Edit",
+        "type": "Contract type",
+        "typePlaceholder": "e.g. professional, youth, loan",
+        "status": "Status",
+        "validFrom": "Valid from",
+        "validUntil": "Valid until",
+        "document": "Linked contract document",
+        "noDocument": "No linked document",
+        "notes": "Notes",
+        "save": "Save contract",
+        "delete": "Delete",
+        "linked": "Document",
+        "expires": "expires {date}",
+        "statuses": {
+          "draft": "Draft",
+          "active": "Active",
+          "terminated": "Terminated",
+          "expired": "Expired"
+        },
+        "tones": {
+          "green": "Valid",
+          "yellow": "Expiring soon",
+          "red": "Expired"
+        }
       }
     }
   },
@@ -511,5 +577,40 @@
     "save": "Save",
     "overviewTitle": "Team statuses",
     "overviewDescription": "Coaches can view the registration and medical status of every athlete from the team overview (no need to open each profile). Medical data is limited to administrative clearance only."
+  },
+  "documents": {
+    "eyebrow": "Compliance",
+    "title": "Documents",
+    "description": "Keep athlete and staff documents together and act before expiry.",
+    "empty": "No documents need attention.",
+    "filterType": "Document type",
+    "filterTone": "Status",
+    "all": "All",
+    "type": "Type",
+    "owner": "Owner",
+    "file": "File",
+    "expiry": "Expiry",
+    "actions": "Actions",
+    "noExpiry": "No expiry",
+    "download": "Download",
+    "opening": "Opening...",
+    "downloadError": "Could not open document",
+    "delete": "Delete",
+    "apply": "Apply filters",
+    "types": {
+      "registration": "Registration",
+      "contract": "Contract",
+      "medical": "Medical",
+      "insurance": "Insurance",
+      "identity": "Identity",
+      "federation": "Federation",
+      "custom": "Custom"
+    },
+    "tones": {
+      "green": "Valid",
+      "yellow": "Expiring soon",
+      "red": "Expired",
+      "none": "No expiry"
+    }
   }
 }

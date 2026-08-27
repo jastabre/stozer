@@ -278,6 +278,72 @@
           "other": "Drugo"
         },
         "error": "Staratelji nisu sačuvani. Proverite da je samo jedan označen kao primarni."
+      },
+      "documents": {
+        "back": "Nazad na igrača",
+        "title": "Dokumenti",
+        "privateNote": "Datoteke su privatne, a preuzimanje koristi bezbedan link sa ograničenim trajanjem.",
+        "empty": "Nema evidentiranih dokumenata.",
+        "add": "Otpremi dokument",
+        "file": "Datoteka",
+        "type": "Vrsta dokumenta",
+        "customType": "Prilagođena vrsta",
+        "customTypePlaceholder": "npr. saglasnost",
+        "issuedAt": "Datum izdavanja",
+        "expiresAt": "Datum isteka",
+        "notes": "Napomene",
+        "upload": "Otpremi",
+        "issued": "izdat {date}",
+        "expires": "ističe {date}",
+        "noExpiry": "bez isteka",
+        "download": "Preuzmi",
+        "opening": "Otvara se...",
+        "downloadError": "Dokument nije moguće otvoriti",
+        "delete": "Obriši",
+        "types": {
+          "registration": "Registracija",
+          "contract": "Ugovor",
+          "medical": "Medicinski",
+          "insurance": "Osiguranje",
+          "identity": "Identitet",
+          "federation": "Federacija",
+          "custom": "Prilagođeno"
+        },
+        "tones": {
+          "green": "Važeći",
+          "yellow": "Ističe uskoro",
+          "red": "Istekao"
+        }
+      },
+      "contracts": {
+        "back": "Nazad na igrača",
+        "title": "Ugovori",
+        "empty": "Nema evidentiranih ugovora.",
+        "add": "Dodaj ugovor",
+        "edit": "Izmeni",
+        "type": "Vrsta ugovora",
+        "typePlaceholder": "npr. profesionalni, omladinski, pozajmica",
+        "status": "Status",
+        "validFrom": "Važi od",
+        "validUntil": "Važi do",
+        "document": "Povezani dokument ugovora",
+        "noDocument": "Bez povezanog dokumenta",
+        "notes": "Napomene",
+        "save": "Sačuvaj ugovor",
+        "delete": "Obriši",
+        "linked": "Dokument",
+        "expires": "ističe {date}",
+        "statuses": {
+          "draft": "Nacrt",
+          "active": "Aktivan",
+          "terminated": "Raskinut",
+          "expired": "Istekao"
+        },
+        "tones": {
+          "green": "Važeći",
+          "yellow": "Ističe uskoro",
+          "red": "Istekao"
+        }
       }
     }
   },
@@ -511,5 +577,40 @@
     "save": "Sačuvaj",
     "overviewTitle": "Statusi timova",
     "overviewDescription": "Treneri mogu videti registracioni i medicinski status svih igrača iz pregleda tima (bez otvaranja profila). Medicinski podaci su ograničeni na administrativnu podobnost."
+  },
+  "documents": {
+    "eyebrow": "Usklađenost",
+    "title": "Dokumenti",
+    "description": "Držite dokumenta igrača i osoblja na jednom mestu i reagujte pre isteka.",
+    "empty": "Nema dokumenata kojima je potrebna pažnja.",
+    "filterType": "Vrsta dokumenta",
+    "filterTone": "Status",
+    "all": "Svi",
+    "type": "Vrsta",
+    "owner": "Vlasnik",
+    "file": "Datoteka",
+    "expiry": "Istek",
+    "actions": "Radnje",
+    "noExpiry": "Bez isteka",
+    "download": "Preuzmi",
+    "opening": "Otvara se...",
+    "downloadError": "Dokument nije moguće otvoriti",
+    "delete": "Obriši",
+    "apply": "Primeni filtere",
+    "types": {
+      "registration": "Registracija",
+      "contract": "Ugovor",
+      "medical": "Medicinski",
+      "insurance": "Osiguranje",
+      "identity": "Identitet",
+      "federation": "Federacija",
+      "custom": "Prilagođeno"
+    },
+    "tones": {
+      "green": "Važeći",
+      "yellow": "Ističe uskoro",
+      "red": "Istekao",
+      "none": "Bez isteka"
+    }
   }
 }

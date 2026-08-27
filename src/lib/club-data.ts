@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { buildClubAthleteNumber } from "@/lib/athlete-id";
+import { deriveStatus, type StatusTone } from "@/lib/status";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -37,6 +38,121 @@ export interface MedicalExamination {
   note: string | null;
   document_id: string | null;
   created_at: string;
+}
+
+export type DocumentOwnerType = "athlete" | "staff";
+export type DocumentTone = StatusTone | "none";
+
+export interface ClubDocument {
+  id: string;
+  organization_id: string;
+  owner_type: DocumentOwnerType;
+  owner_id: string;
+  doc_type: Database["public"]["Enums"]["document_type"];
+  custom_type: string | null;
+  filename: string;
+  storage_path: string;
+  issued_at: string | null;
+  expires_at: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentOverview extends ClubDocument {
+  owner_name: string;
+  tone: DocumentTone;
+}
+
+export interface Contract {
+  id: string;
+  organization_id: string;
+  athlete_id: string;
+  contract_type: string;
+  status: Database["public"]["Enums"]["contract_status"];
+  valid_from: string | null;
+  valid_until: string | null;
+  document_id: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function documentTone(
+  expiresAt: string | null,
+  thresholdDays: number
+): DocumentTone {
+  return expiresAt
+    ? deriveStatus(new Date(`${expiresAt}T00:00:00`), thresholdDays)
+    : "none";
+}
+
+export async function listDocuments(
+  supabase: Supabase,
+  orgId: string,
+  ownerType?: DocumentOwnerType,
+  ownerId?: string
+): Promise<ClubDocument[]> {
+  let query = supabase
+    .from("documents")
+    .select("*")
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: false });
+  if (ownerType) query = query.eq("owner_type", ownerType);
+  if (ownerId) query = query.eq("owner_id", ownerId);
+
+  const { data, error } = await query;
+  if (error) return [];
+  return (data as unknown as ClubDocument[]) ?? [];
+}
+
+export async function listDocumentOverview(
+  supabase: Supabase,
+  orgId: string,
+  thresholdDays: number
+): Promise<DocumentOverview[]> {
+  const documents = await listDocuments(supabase, orgId);
+  const [athleteResult, staffResult] = await Promise.all([
+    supabase
+      .from("athletes")
+      .select("id, first_name, last_name")
+      .eq("organization_id", orgId),
+    supabase
+      .from("staff")
+      .select("id, first_name, last_name")
+      .eq("organization_id", orgId),
+  ]);
+  const names = new Map<string, string>();
+  for (const row of athleteResult.data ?? []) {
+    names.set(`athlete:${row.id}`, `${row.last_name} ${row.first_name}`);
+  }
+  for (const row of staffResult.data ?? []) {
+    names.set(`staff:${row.id}`, `${row.last_name} ${row.first_name}`);
+  }
+
+  return documents.map((document) => ({
+    ...document,
+    owner_name:
+      names.get(`${document.owner_type}:${document.owner_id}`) ??
+      "Nepoznat vlasnik",
+    tone: documentTone(document.expires_at, thresholdDays),
+  }));
+}
+
+export async function listContracts(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string
+): Promise<Contract[]> {
+  const { data, error } = await supabase
+    .from("contracts")
+    .select("*")
+    .eq("organization_id", orgId)
+    .eq("athlete_id", athleteId)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data as unknown as Contract[]) ?? [];
 }
 
 export interface OrganizationSettings {

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { getActiveSeason, getOrganizationSettings, listTeams } from "@/lib/club-data";
+import { getActiveSeason, getOrganizationSettings, listDocuments, listTeams } from "@/lib/club-data";
+import { DocumentSection } from "@/components/documents/DocumentSection";
 import { getStaffProfile } from "@/lib/staff";
 import { hasPermission, requireOrganization } from "@/lib/organization";
 import { createServerClient } from "@/lib/supabase/server";
@@ -30,9 +31,11 @@ export default async function StaffProfilePage({
   const { id } = await params;
   const org = await requireOrganization();
   const supabase = await createServerClient();
-  const [canView, canManage, settings, teams, activeSeason, t] = await Promise.all([
+  const [canView, canManage, canViewDocuments, canManageDocuments, settings, teams, activeSeason, t] = await Promise.all([
     hasPermission("staff.view"),
     hasPermission("staff.manage"),
+    hasPermission("documents.view"),
+    hasPermission("documents.manage"),
     getOrganizationSettings(supabase, org.organizationId),
     listTeams(supabase, org.organizationId),
     getActiveSeason(supabase, org.organizationId),
@@ -47,6 +50,9 @@ export default async function StaffProfilePage({
     settings?.warning_threshold_days ?? 30
   );
   if (!person) notFound();
+  const documents = canViewDocuments
+    ? await listDocuments(supabase, org.organizationId, "staff", person.id)
+    : [];
 
   const inputClass = "rounded-lg border px-3 py-2 text-sm";
   return (
@@ -113,6 +119,17 @@ export default async function StaffProfilePage({
         </div>
         {canManage && <form action={saveStaffLicenseAction} className="mt-4 grid gap-2 rounded-lg bg-muted/40 p-3 sm:grid-cols-4"><input type="hidden" name="staff_id" value={person.id} /><input name="license_type" placeholder={t("licenseType")} required className={inputClass} /><input name="license_number" placeholder={t("licenseNumber")} className={inputClass} /><input name="valid_until" type="date" required aria-label={t("validUntil")} className={inputClass} /><button type="submit" className="rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground">{t("addLicense")}</button></form>}
       </section>
+
+      {canViewDocuments && (
+        <DocumentSection
+          documents={documents}
+          ownerType="staff"
+          ownerId={person.id}
+          thresholdDays={settings?.warning_threshold_days ?? 30}
+          canManage={canManageDocuments}
+          redirectPath={`/people/${person.id}`}
+        />
+      )}
 
       {canManage && <section className="rounded-xl border border-border p-5"><h2 className="text-lg font-semibold">{t("account")}</h2><p className="mt-1 text-xs text-muted-foreground">{person.user_id ? t("linkedAccount") : t("unlinkedAccount")}</p><form action={linkStaffAccountAction} className="mt-4 grid gap-3 sm:grid-cols-3"><input type="hidden" name="staff_id" value={person.id} /><input name="account_email" type="email" placeholder={t("accountEmail")} required className={inputClass} /><select name="role" defaultValue={person.role ?? "coach"} className={inputClass}>{roles.map((role) => <option key={role} value={role}>{t(`roles.${role}`)}</option>)}</select><button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">{t("linkAccount")}</button></form></section>}
     </div>
