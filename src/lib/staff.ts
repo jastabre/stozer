@@ -44,6 +44,8 @@ export interface StaffSummary {
 
 export type StaffViewer = {
   role?: AppRole;
+  /** OrganizationContext calls this property userRole (organization.ts). */
+  userRole?: AppRole;
   userId?: string;
 };
 
@@ -69,7 +71,11 @@ function applyViewerScope(
   query: ReturnType<Supabase["from"]>,
   viewer?: StaffViewer
 ) {
-  if (viewer?.role === "coach" && viewer.userId) {
+  // WR-03: both call sites pass the OrganizationContext object, whose role
+  // property is `userRole`. Accept either shape so the coach self-scope is not
+  // dead code (viewer.role was always undefined before this fix).
+  const role = viewer?.role ?? viewer?.userRole;
+  if (role === "coach" && viewer.userId) {
     return query.eq("user_id", viewer.userId);
   }
   return query;
