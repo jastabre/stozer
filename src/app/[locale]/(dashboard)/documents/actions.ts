@@ -180,13 +180,21 @@ export async function deleteDocument(formData: FormData) {
     .maybeSingle();
   if (readError || !document) throw new Error("Dokument nije pronađen");
 
-  await deleteStoredFile(supabase, org.organizationId, document.storage_path);
+  // WR-09: delete the DB row FIRST, then the storage object. If the row delete
+  // fails nothing has been removed yet and the document stays fully usable.
+  // If the object delete then fails, only an orphaned storage object is left
+  // (no dangling metadata row pointing at a deleted file) — log and continue.
   const { error } = await supabase
     .from("documents")
     .delete()
     .eq("id", documentId.data)
     .eq("organization_id", org.organizationId);
   if (error) throw new Error("Greška pri brisanju dokumenta: " + error.message);
+
+  await deleteStoredFile(supabase, org.organizationId, document.storage_path)
+    .catch(() => {
+      console.warn(`Orphaned storage object after document delete: ${document.storage_path}`);
+    });
 
   const destination = safeRedirectPath(redirectPath, "/documents");
   revalidatePath(destination);
