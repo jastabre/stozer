@@ -34,7 +34,10 @@ CREATE TABLE teams (
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   category TEXT NOT NULL CHECK (category IN ('first_team', 'youth', 'academy', 'other')),
-  sport sport_type NOT NULL DEFAULT (SELECT sport::sport_type FROM organizations WHERE id = organization_id),
+  -- 02-08 fix: PostgreSQL forbids subqueries in DEFAULT expressions
+  -- (SQLSTATE 0A000), so the org-sport inheritance moved to the
+  -- teams_inherit_sport BEFORE INSERT trigger below.
+  sport sport_type NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -252,3 +255,24 @@ CREATE TRIGGER athletes_updated_at
   BEFORE UPDATE ON athletes
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
+
+-- 02-08 fix: inherit the org's sport on team insert, replacing the original
+-- subquery DEFAULT (not allowed in PostgreSQL). Insert without sport gets the
+-- org's sport (organizations.sport is TEXT; the org's own DEFAULT 'sr' does
+-- not apply here); an explicit sport is preserved. The organizations SELECT
+-- policy (org_select_members) lets any org member read their own org, so the
+-- plain (SECURITY INVOKER) trigger function is sufficient.
+CREATE OR REPLACE FUNCTION inherit_team_sport()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.sport IS NULL THEN
+    NEW.sport := (SELECT sport::sport_type FROM organizations WHERE id = NEW.organization_id);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER teams_inherit_sport
+  BEFORE INSERT ON teams
+  FOR EACH ROW
+  EXECUTE FUNCTION inherit_team_sport();

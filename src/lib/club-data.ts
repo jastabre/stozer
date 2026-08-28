@@ -25,7 +25,9 @@ export interface Registration {
   valid_from: string;
   valid_until: string;
   document_id: string | null;
-  created_at: string;
+  // 02-08: aligned to the generated type — the DB column is nullable
+  // (TIMESTAMPTZ DEFAULT now(), no NOT NULL).
+  created_at: string | null;
   season_name?: string | null;
 }
 
