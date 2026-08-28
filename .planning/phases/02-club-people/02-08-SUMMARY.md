@@ -188,3 +188,10 @@ None - no external service configuration required.
 ---
 *Phase: 02-club-people*
 *Completed: 2026-08-28*
+
+## Self-Check: PASSED
+
+- All claimed files exist on disk (src/types/database.ts, src/lib/club-data.ts, supabase/migrations/00010_app_permission_seeds.sql, .gitignore, import/actions.ts, 02-08-SUMMARY.md).
+- All claimed commits exist in git history: `d878d4c` (Task 1), `f792758` (Task 2), `b025612` (docs).
+- Migration list on the linked project verified post-push: 00001..00010 all listed as applied.
+- Pre-existing dirty files (STATE.md/ROADMAP.md/AGENTS.md/README.md/.opencode/opencode.json) untouched — not staged or committed.
