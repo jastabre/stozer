@@ -218,8 +218,24 @@ export async function linkStaffAccountAction(formData: FormData) {
   const parsedEmail = z.string().email().safeParse(email.trim().toLowerCase());
   if (!parsedRole.success || !parsedEmail.success) throw new Error("Email ili uloga nisu validni");
 
-  const { admin, user } = await findAuthUserByEmail(parsedEmail.data);
+  // WR-04: linking an account grants an organization_memberships row, whose
+  // INSERT policy (membership_insert, 00001) only allows a club_president of
+  // the target org. Gate on that DB capability up front so a staff.manage
+  // holder without it (e.g. admin_finance) gets a clear error instead of an
+  // opaque failure AFTER the staff row was already updated.
   const supabase = await createServerClient();
+  const { data: presidentMembership, error: presidentError } = await supabase
+    .from("organization_memberships")
+    .select("id")
+    .eq("organization_id", org.organizationId)
+    .eq("user_id", org.userId)
+    .eq("role", "club_president")
+    .maybeSingle();
+  if (presidentError || !presidentMembership) {
+    throw new Error("Samo predsednik kluba može da povezuje naloge");
+  }
+
+  const { admin, user } = await findAuthUserByEmail(parsedEmail.data);
   throwIfError(
     await linkStaffToUser(
       supabase,

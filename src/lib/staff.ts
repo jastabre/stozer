@@ -275,6 +275,21 @@ export async function linkStaffToUser(
   userId: string,
   role: AppRole
 ): Promise<{ ok: true } | { error: string }> {
+  // WR-04: the membership upsert can fail independently of the staff update
+  // (RLS on organization_memberships only allows the club_president, plus
+  // transient errors). Read the current values first so a failed upsert can
+  // be compensated instead of leaving a half-linked profile (staff linked,
+  // membership row absent).
+  const { data: current, error: readError } = await supabase
+    .from("staff")
+    .select("user_id, role")
+    .eq("id", staffId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (readError || !current) {
+    return { error: readError?.message ?? "Profil osoblja nije pronađen" };
+  }
+
   const { error: staffError } = await supabase
     .from("staff")
     .update({ user_id: userId, role })
@@ -288,7 +303,16 @@ export async function linkStaffToUser(
       { organization_id: orgId, user_id: userId, role },
       { onConflict: "organization_id,user_id" }
     );
-  if (membershipError) return { error: membershipError.message };
+  if (membershipError) {
+    // Compensate the already-committed staff update so the profile is not left
+    // linked to an account that has no membership row.
+    await supabase
+      .from("staff")
+      .update({ user_id: current.user_id, role: current.role })
+      .eq("id", staffId)
+      .eq("organization_id", orgId);
+    return { error: membershipError.message };
+  }
   return { ok: true };
 }
 
