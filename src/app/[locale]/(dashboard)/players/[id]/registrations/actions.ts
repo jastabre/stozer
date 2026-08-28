@@ -60,10 +60,30 @@ export async function saveRegistration(formData: FormData) {
       .maybeSingle();
     if (documentError || !document) throw new Error("Dokument registracije nije pronađen");
   }
+  // WR-05: verify the athlete and (when set) the season belong to this org
+  // before inserting/updating — cross-org parent references are rejected by
+  // the composite org FKs (00011); validate here for a clear message.
+  const { data: athlete, error: athleteError } = await supabase
+    .from("athletes")
+    .select("id")
+    .eq("id", athleteId)
+    .eq("organization_id", org.organizationId)
+    .maybeSingle();
+  if (athleteError || !athlete) throw new Error("Igrač nije pronađen u organizaciji");
+
   const seasonValue =
     fields.season_id && fields.season_id.trim() !== ""
       ? fields.season_id
       : null;
+  if (seasonValue) {
+    const { data: season, error: seasonError } = await supabase
+      .from("seasons")
+      .select("id")
+      .eq("id", seasonValue)
+      .eq("organization_id", org.organizationId)
+      .maybeSingle();
+    if (seasonError || !season) throw new Error("Sezona nije pronađena u organizaciji");
+  }
 
   if (id) {
     const { error } = await supabase

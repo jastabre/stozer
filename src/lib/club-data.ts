@@ -622,6 +622,22 @@ export async function createAthlete(
   orgId: string,
   input: CreateAthleteInput
 ): Promise<{ id: string; club_athlete_number: number } | { error: string }> {
+  // WR-05: verify a team assignment belongs to this org BEFORE claiming a
+  // counter value. Otherwise the membership insert would reference a foreign
+  // parent (now rejected by the composite org FK) after the athlete insert
+  // had already committed.
+  if (input.team_id) {
+    const { data: team, error: teamError } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("id", input.team_id)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (teamError || !team) {
+      return { error: "Tim nije pronađen u organizaciji" };
+    }
+  }
+
   // (1) Claim the next number via atomic UPDATE..RETURNING (no MAX(id)+1, no nextval).
   const { data: claimed, error: claimError } = await supabase.rpc(
     "claim_club_athlete_number",

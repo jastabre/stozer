@@ -84,6 +84,19 @@ export async function updateGuardians(
   athleteId: string,
   rows: GuardianInput[]
 ): Promise<{ ok: true } | { error: string }> {
+  // WR-05: verify the athlete belongs to this org before replacing the
+  // guardian set — otherwise the inserts would reference a foreign parent
+  // (now rejected by the composite org FK).
+  const { data: athlete, error: athleteError } = await supabase
+    .from("athletes")
+    .select("id")
+    .eq("id", athleteId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (athleteError || !athlete) {
+    return { error: "Igrač nije pronađen u organizaciji" };
+  }
+
   const normalized = normalizeGuardians(rows, athleteId);
   const { error: deleteError } = await supabase
     .from("guardians")

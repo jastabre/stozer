@@ -215,6 +215,18 @@ export async function upsertStaffLicenses(
   staffId: string,
   rows: StaffLicenseInput[]
 ): Promise<{ ok: true } | { error: string }> {
+  // WR-05: verify the profile belongs to this org before replacing licenses —
+  // cross-org references are rejected by the composite org FK (00011).
+  const { data: profile, error: profileError } = await supabase
+    .from("staff")
+    .select("id")
+    .eq("id", staffId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (profileError || !profile) {
+    return { error: "Profil osoblja nije pronađen u organizaciji" };
+  }
+
   const { error: deleteError } = await supabase
     .from("staff_licenses")
     .delete()
@@ -243,6 +255,41 @@ export async function setStaffTeams(
   seasonId: string,
   teamIds: string[]
 ): Promise<{ ok: true } | { error: string }> {
+  // WR-05: verify the profile, season and every team belong to this org
+  // before replacing assignments — cross-org references are rejected by the
+  // composite org FKs (00011).
+  const { data: profile, error: profileError } = await supabase
+    .from("staff")
+    .select("id")
+    .eq("id", staffId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (profileError || !profile) {
+    return { error: "Profil osoblja nije pronađen u organizaciji" };
+  }
+
+  const { data: season, error: seasonError } = await supabase
+    .from("seasons")
+    .select("id")
+    .eq("id", seasonId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (seasonError || !season) {
+    return { error: "Sezona nije pronađena u organizaciji" };
+  }
+
+  const uniqueTeamIds = [...new Set(teamIds)];
+  if (uniqueTeamIds.length > 0) {
+    const { data: teams, error: teamsError } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("organization_id", orgId)
+      .in("id", uniqueTeamIds);
+    if (teamsError || !teams || teams.length !== uniqueTeamIds.length) {
+      return { error: "Jedan od timova nije pronađen u organizaciji" };
+    }
+  }
+
   const { error: deleteError } = await supabase
     .from("staff_teams")
     .delete()
@@ -251,7 +298,6 @@ export async function setStaffTeams(
     .eq("season_id", seasonId);
   if (deleteError) return { error: deleteError.message };
 
-  const uniqueTeamIds = [...new Set(teamIds)];
   if (uniqueTeamIds.length === 0) return { ok: true };
   const { error: insertError } = await supabase.from("staff_teams").insert(
     uniqueTeamIds.map((teamId) => ({

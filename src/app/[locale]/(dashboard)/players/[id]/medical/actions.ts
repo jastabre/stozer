@@ -61,6 +61,16 @@ export async function saveMedicalExamination(formData: FormData) {
     if (documentError || !document) throw new Error("Medicinski dokument nije pronađen");
   }
 
+  // WR-05: verify the athlete belongs to this org before inserting/updating —
+  // cross-org parent references are rejected by the composite org FK (00011).
+  const { data: athlete, error: athleteError } = await supabase
+    .from("athletes")
+    .select("id")
+    .eq("id", athleteId)
+    .eq("organization_id", org.organizationId)
+    .maybeSingle();
+  if (athleteError || !athlete) throw new Error("Igrač nije pronađen u organizaciji");
+
   if (id) {
     const { error } = await supabase
       .from("medical_examinations")
