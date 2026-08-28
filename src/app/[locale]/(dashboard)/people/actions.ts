@@ -214,6 +214,11 @@ export async function linkStaffAccountAction(formData: FormData) {
   if (typeof staffId !== "string" || typeof email !== "string" || typeof role !== "string") {
     throw new Error("Email i uloga naloga su obavezni");
   }
+  // WR-08: explicit confirmation — linking overwrites the target account's
+  // access claims, so the UI must obtain consent before this runs.
+  if (formData.get("confirm") !== "on") {
+    throw new Error("Potvrdite povezivanje naloga");
+  }
   const parsedRole = z.enum(roleValues).safeParse(role);
   const parsedEmail = z.string().email().safeParse(email.trim().toLowerCase());
   if (!parsedRole.success || !parsedEmail.success) throw new Error("Email ili uloga nisu validni");
@@ -236,6 +241,36 @@ export async function linkStaffAccountAction(formData: FormData) {
   }
 
   const { admin, user } = await findAuthUserByEmail(parsedEmail.data);
+
+  // WR-08: linking overwrites the target user's app_metadata claims
+  // (organization_id, user_role) — the exact claims every access-control check
+  // (requireOrganization, hasPermission, every RLS policy) reads. Refuse when
+  // the account already belongs to another org: silently clobbering another
+  // tenant's claims would revoke their access and grant ours. The admin client
+  // (service role) bypasses RLS so this check sees all tenants.
+  const { data: existingMemberships, error: membershipsError } = await admin
+    .from("organization_memberships")
+    .select("organization_id")
+    .eq("user_id", user.id);
+  if (membershipsError) throw new Error("Nije moguće proveriti povezanost naloga");
+  const foreignMemberships =
+    existingMemberships?.filter(
+      (membership) => membership.organization_id !== org.organizationId
+    ) ?? [];
+  if (foreignMemberships.length > 0) {
+    throw new Error("Korisnički nalog je već povezan sa drugom organizacijom");
+  }
+
+  const { data: foreignStaffLinks, error: staffLinksError } = await admin
+    .from("staff")
+    .select("id")
+    .eq("user_id", user.id)
+    .neq("organization_id", org.organizationId);
+  if (staffLinksError) throw new Error("Nije moguće proveriti povezanost profila");
+  if (foreignStaffLinks && foreignStaffLinks.length > 0) {
+    throw new Error("Korisnički nalog je već povezan sa profilom osoblja u drugoj organizaciji");
+  }
+
   throwIfError(
     await linkStaffToUser(
       supabase,

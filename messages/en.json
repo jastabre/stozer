@@ -383,6 +383,7 @@
     "account": "Login account",
     "accountEmail": "Existing user email",
     "linkAccount": "Link account",
+    "confirmLink": "I confirm this account is not linked to another organization. Linking overwrites the account's access claims.",
     "linked": "Linked",
     "notLinked": "Not linked",
     "linkedAccount": "This profile is linked to a login account.",

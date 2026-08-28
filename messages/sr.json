@@ -383,6 +383,7 @@
     "account": "Korisnički nalog",
     "accountEmail": "Email postojećeg korisnika",
     "linkAccount": "Poveži nalog",
+    "confirmLink": "Potvrđujem da nalog nije povezan sa drugom organizacijom. Povezivanje menja pristupne dozvole naloga.",
     "linked": "Povezan",
     "notLinked": "Nije povezan",
     "linkedAccount": "Profil je povezan sa korisničkim nalogom.",
