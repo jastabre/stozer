@@ -154,9 +154,20 @@ export default function ImportPage() {
     let offset = 0;
     try {
       while (offset < job.totalRows) {
+        // WR-06: decisions are keyed by the RAW row index, but the preview only
+        // covers the first 50 rows (parseUploadAction returns rows.slice(0, 50)).
+        // Sending the full decisions record to every batch made rows 50+ fall
+        // to the default "skip" no matter what the user chose. Send only the
+        // slice this batch processes so decisions land on the rows they saw.
+        const batchDecisions = Object.fromEntries(
+          Object.entries(decisions)
+            .map(([key, value]) => [Number(key), value] as const)
+            .filter(([index]) => index >= offset && index < offset + 50)
+            .map(([index, value]) => [String(index), value])
+        );
         const result = await importBatchAction(job.jobId, offset, 50, {
           mapping: mappings,
-          decisions,
+          decisions: batchDecisions,
         });
         setProgress(result.progress);
         if (result.rowErrors.length > 0) setServerErrors((current) => [...current, ...result.rowErrors]);
