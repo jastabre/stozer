@@ -55,7 +55,7 @@ Plans:
   7. Basic player contracts are tracked (type, status, dates, document, expiry warning)
   8. Player documents (medical, insurance) are stored with expiry tracking
 
-**Plans**: 6/8 plans executed
+**Plans**: 8/8 plans executed
 
 Plans:
 **Wave 1**
@@ -84,11 +84,11 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 02-07-PLAN.md — Equipment (sizes, issue states, team tracking, requests, export)
+- [x] 02-07-PLAN.md — Equipment (sizes, issue states, team tracking, requests, export)
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
-- [ ] 02-08-PLAN.md — [BLOCKING] schema push to Supabase + type regen + full phase gates
+- [x] 02-08-PLAN.md — [BLOCKING] schema push to Supabase + type regen + full phase gates
 
 ### Phase 3: Scheduling & Attendance
 
@@ -214,7 +214,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/TBD | Not started | - |
-| 2. Club & People | 6/8 | In Progress|  |
+| 2. Club & People | 8/8 | In Progress|  |
 | 3. Scheduling & Attendance | 0/TBD | Not started | - |
 | 4. Youth Finance | 0/TBD | Not started | - |
 | 5. Bank Reconciliation | 0/TBD | Not started | - |
