@@ -55,6 +55,14 @@ export async function createPlayer(formData: FormData) {
   const active = await getActiveSeason(supabase, org.organizationId);
   const teamId = parsed.data.team_id;
 
+  // CR-01: a team assignment requires an active season. Reject BEFORE the
+  // athlete is inserted — otherwise createAthlete's membership insert fails
+  // after the athlete (and its claimed club-athlete number) is already
+  // committed, and a retry burns another counter value.
+  if (teamId && !active) {
+    throw new Error("Nema aktivne sezone — dodajte sezonu pre nego što dodelite tim");
+  }
+
   const result = await createAthlete(supabase, org.organizationId, {
     first_name: parsed.data.first_name,
     last_name: parsed.data.last_name,

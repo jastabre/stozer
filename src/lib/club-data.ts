@@ -659,17 +659,29 @@ export async function createAthlete(
 
   // (3) Optionally insert the current-season membership (team + jersey).
   if (input.team_id) {
+    if (!input.seasonId) {
+      // CR-01: a team assignment requires an active season. Compensate the
+      // already-committed athlete insert so no orphan athlete (invisible in
+      // the roster's inner join) or burned club-athlete counter value remains.
+      await supabase.from("athletes").delete().eq("id", athlete.id);
+      return { error: "Aktivna sezona je obavezna za dodelu tima" };
+    }
+
     const { error: membershipError } = await supabase
       .from("seasonal_memberships")
       .insert({
         organization_id: orgId,
         athlete_id: athlete.id,
-        season_id: input.seasonId ?? "",
+        season_id: input.seasonId,
         team_id: input.team_id,
         jersey_number: input.jersey_number ?? null,
       });
 
     if (membershipError) {
+      // CR-01: the athlete row is already committed at this point. Compensate
+      // by removing it so a retry cannot mint a second athlete (and burn
+      // another counter value) for a membership that never materialized.
+      await supabase.from("athletes").delete().eq("id", athlete.id);
       return { error: membershipError.message };
     }
   }
