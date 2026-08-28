@@ -28,7 +28,7 @@ const mappingSchema = z.array(
 ).max(1000);
 const decisionsSchema = z.record(z.enum(["skip", "update", "create"]));
 
-export interface ImportPreviewAthlete extends AthleteRef {}
+export type ImportPreviewAthlete = AthleteRef;
 
 export interface ParseUploadResult {
   jobId: string;
