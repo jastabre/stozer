@@ -426,8 +426,17 @@ export async function importBatchAction(
       .eq("organization_id", org.organizationId)
       .eq("processed_rows", offset)
       .select("*")
-      .single();
-    if (updateError || !updated) throw new Error("Could not update import progress");
+      .maybeSingle();
+    if (updateError) throw new Error("Could not update import progress");
+    if (!updated) {
+      // WR-02: another request already advanced this batch (client retry /
+      // double-submit / stale poll) — the optimistic-concurrency update matched
+      // zero rows. That is NOT a failure: the winning request committed the
+      // progress, so return the fresh state instead of flipping the job to
+      // "failed" (a terminal status that would hide a successful import).
+      const fresh = await getImportProgressAction(jobId);
+      return { nextOffset: fresh.processedRows, progress: fresh, rowErrors: [] };
+    }
 
     return {
       nextOffset,
