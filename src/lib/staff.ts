@@ -75,7 +75,7 @@ function applyViewerScope(
   // property is `userRole`. Accept either shape so the coach self-scope is not
   // dead code (viewer.role was always undefined before this fix).
   const role = viewer?.role ?? viewer?.userRole;
-  if (role === "coach" && viewer.userId) {
+  if (viewer && role === "coach" && viewer.userId) {
     return query.eq("user_id", viewer.userId);
   }
   return query;
