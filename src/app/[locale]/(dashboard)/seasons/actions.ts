@@ -63,17 +63,21 @@ export async function createSeason(formData: FormData) {
 /**
  * "Start New Season" rollover (D-03/D-04).
  *
- * Sequential steps (supabase-js cannot wrap a multi-statement transaction):
+ * Sequential steps (supabase-js cannot wrap a multi-statement transaction),
+ * in a COMPENSATING order so no failure window can lose the carry-forward:
  *   1. read the current active season (the one being replaced)
- *   2. archive the old active season   (UPDATE seasons SET is_active=false ...)
- *   3. insert the new active season    (INSERT ... is_active=true)
- *   4. build the carry-forward from the previous season's memberships + moves
- *   5. validate team references and bulk-insert the new memberships
- *   6. carry staff_teams assignments into the new season (D-03)
+ *   2. insert the new season INACTIVE (nothing is active yet)
+ *   3. build the carry-forward from the previous season's memberships + moves
+ *   4. validate team references and bulk-insert the new memberships
+ *   5. carry staff_teams assignments into the new season (D-03)
+ *   6. archive the old season, then activate the new one LAST
  *
+ * If any step 2-6 write fails, the just-inserted season is deleted (its
+ * memberships/staff rows cascade) and the previous season stays active — a
+ * retry therefore rebuilds the carry-forward from the real previous data.
  * Atomicity of the single-active invariant is BACKSTOPPED at the DB by the
- * partial unique index one_active_season_per_org (Pattern 1, T-02-02-04) — if
- * archiving were ever skipped the insert would fail rather than double-activate.
+ * partial unique index one_active_season_per_org (Pattern 1, T-02-02-04) — a
+ * second active row cannot be created, so the archive must precede activation.
  * Staff assignments carry over unchanged; the unique constraint and
  * ignoreDuplicates make retries idempotent.
  */
@@ -116,24 +120,20 @@ export async function startNewSeason(formData: FormData) {
       )
     : [];
 
-  // (2) Archive the old active season.
-  const { error: archiveError } = await supabase
-    .from("seasons")
-    .update({ is_active: false })
-    .eq("organization_id", orgId)
-    .eq("is_active", true);
-  if (archiveError) {
-    throw new Error("Greška pri arhiviranju prethodne sezone: " + archiveError.message);
-  }
-
-  // (3) Insert the new active season.
+  // (2) Insert the new season FIRST but INACTIVE. The carry-forward writes can
+  // reference it while the single-active invariant is preserved: if any later
+  // step fails only this new (inactive) season is deleted, and the previous
+  // season is untouched. WR-01: archiving+activating before the memberships
+  // insert meant a mid-flight failure left the old season archived and the new
+  // one active with ZERO memberships — and a retry rebuilt the carry-forward
+  // from the empty new season, losing the previous data forever.
   const { data: newSeason, error: seasonError } = await supabase
     .from("seasons")
     .insert({
       organization_id: orgId,
       name: parsed.data.name,
       starts_on: parsed.data.starts_on,
-      is_active: true,
+      is_active: false,
     })
     .select("id")
     .single();
@@ -142,7 +142,19 @@ export async function startNewSeason(formData: FormData) {
     throw new Error("Greška pri kreiranju sezone: " + (seasonError?.message ?? "nema id"));
   }
 
-  // (4) Build the carry-forward from the previous season's memberships.
+  // Compensation for any later failure: remove the just-inserted season. Its
+  // memberships/staff rows cascade with it, and the previous season is still
+  // active, so a retried action rebuilds the carry-forward from real data.
+  const compensate = async (message: string): Promise<never> => {
+    await supabase
+      .from("seasons")
+      .delete()
+      .eq("id", newSeason.id)
+      .eq("organization_id", orgId);
+    throw new Error(message);
+  };
+
+  // (3) Build the carry-forward from the previous season's memberships.
   const memberships: PrevMembership[] = prevAthletes.map((a) => ({
     athleteId: a.id,
     prevTeamId: a.membership?.team_id ?? "",
@@ -157,10 +169,10 @@ export async function startNewSeason(formData: FormData) {
   );
   const validationErrors = validateRollover(carryForward.memberships, teamsById);
   if (validationErrors.length > 0) {
-    throw new Error(validationErrors[0]);
+    return compensate(validationErrors[0]);
   }
 
-  // (5) Bulk-insert the new memberships.
+  // (4) Bulk-insert the new memberships.
   if (carryForward.memberships.length > 0) {
     const { error: membershipError } = await supabase
       .from("seasonal_memberships")
@@ -176,11 +188,11 @@ export async function startNewSeason(formData: FormData) {
       );
 
     if (membershipError) {
-      throw new Error("Greška pri prenosu članstava: " + membershipError.message);
+      return compensate("Greška pri prenosu članstava: " + membershipError.message);
     }
   }
 
-  // (6) Staff keep their team assignments after rollover (D-03). The insert
+  // (5) Staff keep their team assignments after rollover (D-03). The insert
   // is intentionally idempotent so a retried action cannot duplicate rows.
   const staffCarryForward = buildStaffCarryForward(prevStaffTeams, newSeason.id);
   if (staffCarryForward.staffTeams.length > 0) {
@@ -197,8 +209,37 @@ export async function startNewSeason(formData: FormData) {
       );
 
     if (staffTeamError) {
-      throw new Error("Greška pri prenosu timova osoblja: " + staffTeamError.message);
+      return compensate("Greška pri prenosu timova osoblja: " + staffTeamError.message);
     }
+  }
+
+  // (6) Archive the old season, then activate the new one LAST. The DB
+  // backstop (one_active_season_per_org) allows at most one active row, so the
+  // archive must precede activation. On activation failure, restore the
+  // previous season's active flag before compensating.
+  const { error: archiveError } = await supabase
+    .from("seasons")
+    .update({ is_active: false })
+    .eq("organization_id", orgId)
+    .eq("is_active", true);
+  if (archiveError) {
+    return compensate("Greška pri arhiviranju prethodne sezone: " + archiveError.message);
+  }
+
+  const { error: activateError } = await supabase
+    .from("seasons")
+    .update({ is_active: true })
+    .eq("id", newSeason.id)
+    .eq("organization_id", orgId);
+  if (activateError) {
+    if (prevSeason) {
+      await supabase
+        .from("seasons")
+        .update({ is_active: true })
+        .eq("id", prevSeason.id)
+        .eq("organization_id", orgId);
+    }
+    return compensate("Greška pri aktiviranju nove sezone: " + activateError.message);
   }
 
   revalidatePath("/seasons");
