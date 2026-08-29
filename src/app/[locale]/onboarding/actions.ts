@@ -1,14 +1,22 @@
 "use server";
 
+import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { onboardingSchema, type OnboardingInput } from "@/schemas/onboarding";
+import type { Database } from "@/types/database";
 
 /**
  * Create a new organization during onboarding.
  * First user of a new org becomes club_president (D-05).
- * Creates org + membership + subscription in a single transaction.
+ *
+ * The org + first membership + subscription are created atomically by the
+ * SECURITY DEFINER RPC public.create_organization_onboarding (00014). RLS is
+ * intentionally NOT relaxed: a brand-new user cannot satisfy the
+ * membership_insert policy (which requires already being a president), so the
+ * RPC performs the bootstrap on their behalf — but ONLY for the caller
+ * (auth.uid()), ONLY as their first org, and ONLY with role club_president.
  */
 export async function createOrganization(data: OnboardingInput) {
   // Validate input
@@ -29,7 +37,7 @@ export async function createOrganization(data: OnboardingInput) {
     throw new Error("Niste prijavljeni");
   }
 
-  // 2. Check if user already has an organization
+  // 2. Check if user already has an organization (early, friendly error)
   const { data: existingMemberships } = await supabase
     .from("organization_memberships")
     .select("id")
@@ -40,84 +48,73 @@ export async function createOrganization(data: OnboardingInput) {
     throw new Error("Već imate kreiran klub");
   }
 
-  // 3. Create organization
-  const { data: org, error: orgError } = await supabase
-    .from("organizations")
-    .insert({
-      name: parsed.data.club_name,
-      sport: parsed.data.sport,
-      country: parsed.data.country,
-      language: parsed.data.language,
-      currency: parsed.data.currency,
-      timezone: parsed.data.timezone,
-    })
-    .select()
-    .single();
-
-  if (orgError) {
-    throw new Error("Greška pri kreiranju organizacije: " + orgError.message);
-  }
-
-  // 4. Create membership (first user = club_president)
-  const { error: membershipError } = await supabase
-    .from("organization_memberships")
-    .insert({
-      organization_id: org.id,
-      user_id: user.id,
-      role: "club_president",
-    });
-
-  if (membershipError) {
-    throw new Error("Greška pri kreiranju članstva: " + membershipError.message);
-  }
-
-  // 5. Create subscription (FREE plan with 14-day trial)
-  const now = new Date();
-  const trialEnds = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-
-  const { error: subError } = await supabase.from("subscriptions").insert({
-    organization_id: org.id,
-    plan_id: "a0000000-0000-0000-0000-000000000002", // CLUB plan (trial)
-    status: "active",
-    trial_starts_at: now.toISOString(),
-    trial_ends_at: trialEnds.toISOString(),
-  });
-
-  if (subError) {
-    throw new Error("Greška pri kreiranju pretplate: " + subError.message);
-  }
-
-  // 6. Set JWT claims via Supabase Admin API
-  // Note: In production this would use a custom_access_token_hook.
-  // For now we update the user's app_metadata directly.
-  const { error: updateError } = await supabase.auth.admin.updateUserById(
-    user.id,
+  // 3. Atomic org + membership + subscription creation via the RPC
+  const { data: orgId, error: rpcError } = await supabase.rpc(
+    "create_organization_onboarding",
     {
-      app_metadata: {
-        ...user.app_metadata,
-        organization_id: org.id,
-        user_role: "club_president",
-      },
+      p_name: parsed.data.club_name,
+      p_sport: parsed.data.sport,
+      p_country: parsed.data.country,
+      p_language: parsed.data.language,
+      p_currency: parsed.data.currency,
+      p_timezone: parsed.data.timezone,
     }
   );
 
-  // If admin API isn't available, we can also try updating the user's metadata
-  // through the regular auth update
-  if (updateError) {
-    // Try alternative: update via user metadata
-    const { error: metaError } = await supabase.auth.updateUser({
-      data: {
-        organization_id: org.id,
-        user_role: "club_president",
-      },
-    });
+  if (rpcError) {
+    throw new Error("Greška pri kreiranju organizacije: " + rpcError.message);
+  }
 
-    if (metaError) {
-      // Log but don't fail — the org and membership are created
-      console.error("Warning: Could not set JWT claims:", metaError.message);
+  if (!orgId) {
+    throw new Error("Greška pri kreiranju organizacije");
+  }
+
+  // 4. Set JWT claims (organization_id, user_role) via the service-role admin
+  //    client. Only the service role may write app_metadata. Every access check
+  //    (middleware, requireOrganization, authorize(), RLS policies) reads these.
+  const admin = createAuthAdminClient();
+  const { error: claimsError } = await admin.auth.admin.updateUserById(user.id, {
+    app_metadata: {
+      ...user.app_metadata,
+      organization_id: orgId,
+      user_role: "club_president",
+    },
+  });
+
+  if (claimsError) {
+    throw new Error(
+      "Klub je kreiran, ali aktivacija uloge nije uspela: " + claimsError.message
+    );
+  }
+
+  // 5. Rotate the session so the fresh access token carries the new claims.
+  //    RLS org-scoping (auth.jwt()->'app_metadata') reads the token, not the
+  //    cached user object, so without this the club pages would appear empty.
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (sessionData.session?.refresh_token) {
+    const { error: refreshError } = await supabase.auth.refreshSession({
+      refresh_token: sessionData.session.refresh_token,
+    });
+    if (refreshError) {
+      throw new Error(
+        "Klub je kreiran, ali sesija nije osvežena: " + refreshError.message
+      );
     }
   }
 
-  revalidatePath("/sr/dashboard");
-  redirect("/sr/dashboard");
+  revalidatePath("/sr");
+  redirect("/sr");
+}
+
+function createAuthAdminClient() {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!serviceKey || !url) {
+    throw new Error(
+      "Kreiranje kluba zahteva podešen server-side Supabase admin ključ"
+    );
+  }
+  return createClient<Database>(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }

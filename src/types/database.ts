@@ -1425,6 +1425,17 @@ export type Database = {
         Returns: boolean
       }
       claim_club_athlete_number: { Args: { p_org_id: string }; Returns: number }
+      create_organization_onboarding: {
+        Args: {
+          p_name: string
+          p_sport: string
+          p_country: string
+          p_language: string
+          p_currency: string
+          p_timezone: string
+        }
+        Returns: string
+      }
       current_organization_id: { Args: never; Returns: string }
     }
     Enums: {

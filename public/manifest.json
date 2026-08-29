@@ -2,7 +2,7 @@
   "name": "STOŽER — Sports Club Management",
   "short_name": "STOŽER",
   "description": "Professional SaaS platform for managing sports clubs, teams, players, and finances.",
-  "start_url": "/sr/dashboard",
+  "start_url": "/sr",
   "display": "standalone",
   "theme_color": "#ffffff",
   "background_color": "#ffffff",

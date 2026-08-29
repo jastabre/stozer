@@ -1,32 +1,51 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-26T00:52:00.000Z",
-  "phase": null,
-  "phase_name": null,
-  "phase_dir": null,
+  "timestamp": "2026-08-29T22:04:57.855Z",
+  "phase": "02",
+  "phase_name": "02-club-people",
+  "phase_dir": ".planning/phases/02-club-people",
   "plan": null,
-  "task": null,
-  "total_tasks": null,
+  "task": 1,
+  "total_tasks": 8,
   "status": "paused",
-  "completed_tasks": [],
-  "remaining_tasks": [],
-  "blockers": [],
+  "completed_tasks": [
+    {"id": 1, "name": "Plan 02-01: Test infrastructure (vitest) + Phase 2 dependencies", "status": "done"},
+    {"id": 2, "name": "Plan 02-02: TRACER seasons/teams/players schema, club athlete ID, roster, rollover", "status": "done"},
+    {"id": 3, "name": "Plan 02-03: Registrations + status helper + medical examinations", "status": "done"},
+    {"id": 4, "name": "Plan 02-04: Staff profiles with licenses + guardian contacts", "status": "done"},
+    {"id": 5, "name": "Plan 02-05: Typed documents + private storage + player contracts", "status": "done"},
+    {"id": 6, "name": "Plan 02-06: CSV/XLSX import wizard", "status": "done"},
+    {"id": 7, "name": "Plan 02-07: Equipment", "status": "done"},
+    {"id": 8, "name": "Plan 02-08: [BLOCKING] schema push + type regen + full phase gates (00001..00010 applied, vitest 98/98, tsc 0, lint 0, build 0)", "status": "done"},
+    {"id": 9, "name": "UAT test 1 (club setup flow): fix org-creation blocker G-02-1R2 + RETEST fixes (middleware, nested html/body, onboarding RPC, BottomNav, dashboard CTA)", "status": "in_progress", "progress": "All fixes applied and statically verified (vitest 98/98, tsc 0, lint 0, build 0; HTTP checks for public routes + /sr and /en dashboard CTA). RETEST #4 not yet run by user."}
+  ],
+  "remaining_tasks": [
+    {"id": 10, "name": "UAT test 1 (RETEST #4): run club setup end-to-end, confirm org creation + team + player with C-format ID", "status": "not_started"},
+    {"id": 11, "name": "UAT test 2: CR-01 create-player edge case (no active season) — no orphaned/invisible athlete", "status": "not_started"},
+    {"id": 12, "name": "UAT test 3: Bulk import CSV + XLSX >50 rows, unknown teams, duplicates (WR-06 limitation)", "status": "not_started"},
+    {"id": 13, "name": "UAT test 4: Season rollover identity persistence", "status": "not_started"},
+    {"id": 14, "name": "UAT test 5: Registration status colors", "status": "not_started"},
+    {"id": 15, "name": "UAT test 6: Staff profile + license pill + account linking (WR-03/WR-04)", "status": "not_started"},
+    {"id": 16, "name": "UAT test 7: Documents upload/download/delete + expiry overview (WR-09)", "status": "not_started"},
+    {"id": 17, "name": "UAT test 8: Cross-tenant RLS sanity check", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "UAT tests 1-8 require live browser + live Supabase project with real user sessions; only static/automated verification done so far", "type": "human_action", "workaround": "User walks each flow in a browser against localhost:3000 with a freshly registered user"}
+  ],
   "async_jobs": [],
-  "human_actions_pending": [],
+  "human_actions_pending": [
+    {"action": "Re-run UAT test 1 (RETEST #4): register/verify/login, submit 'Kreiraj klub', create season + team + player, confirm C-format club ID on roster", "context": "Org-creation RLS blocker G-02-1R2 was fixed (00014-00016 + onboarding action rewrite). RETEST #3 passed org+team creation; #4 is the current in-progress retest", "blocking": true},
+    {"action": "Walk UAT tests 2-8 in the browser (see 02-UAT.md)", "context": "All remaining human verification items; no automated e2e coverage exists for these flows", "blocking": false}
+  ],
   "decisions": [
-    {"decision": "Greenfield project — starting fresh despite existing code in directory", "rationale": "User confirmed fresh start, existing code not relevant", "phase": "init"},
-    {"decision": "Solo founder, no deadline, quality first", "rationale": "User explicit preference", "phase": "init"},
-    {"decision": "Serbian Latin primary, English via i18n", "rationale": "Target market Serbia, global architecture from day one", "phase": "init"},
-    {"decision": "Free + paid from day one with trial", "rationale": "Brief requires freemium model", "phase": "init"},
-    {"decision": "Vertical MVP structure with Foundation phase first", "rationale": "User requested thin foundation then vertical slices", "phase": "init"},
-    {"decision": "Sequential execution (no parallel plans)", "rationale": "Solo founder, quality over speed", "phase": "init"},
-    {"decision": "Interactive mode (confirm at each step)", "rationale": "User preference for control", "phase": "init"},
-    {"decision": "No COMET in V1 — Stozer works independently", "rationale": "Brief requirement, user confirmed", "phase": "init"},
-    {"decision": "First-team finance and sponsors deferred to post-V1", "rationale": "User explicit scope lock — important but not V1", "phase": "init"},
-    {"decision": "Player import, basic contracts, staff license tracking in Phase 2", "rationale": "User adjustment to Phase 2 scope", "phase": "init"},
-    {"decision": "Phase 7 includes production readiness verification (RLS, permissions, mobile UX, PWA, security audit)", "rationale": "User adjustment to Phase 7 scope", "phase": "init"}
+    {"decision": "Fix org-creation blocker via SECURITY DEFINER RPC create_organization_onboarding + search_path=public + restored base grants", "rationale": "Root cause G-02-1R2: missing base grants blocked RLS evaluation; RPC makes atomic org+membership+subscription creation possible", "phase": "02"},
+    {"decision": "Use service-role admin client to set JWT app_metadata claims + refresh session after onboarding", "rationale": "RLS policies read claims that anon-key updates cannot set; stale session token would keep reading old claims", "phase": "02"},
+    {"decision": "Public auth/landing paths short-circuit before handleI18nRouting in middleware", "rationale": "localePrefix 'always' rewrote unprefixed /login -> /en/login which 404'd; public paths must bypass i18n redirect", "phase": "02"},
+    {"decision": "Remove <html>/<body> from [locale]/layout.tsx; root layout owns document elements", "rationale": "Nested document elements broke hydration + RSC navigation (G-02-1R)", "phase": "02"},
+    {"decision": "Replace BottomNav useState(() => loadRole()) effect hack with useEffect + cancellation flag; fix dashboard 'Dodaj tim' CTA actionHref='#' -> /{locale}/teams", "rationale": "RETEST #4 fixes: async setNavItems could update after unmount; broken CTA did nothing", "phase": "02"},
+    {"decision": "Included all uncommitted UAT source fixes + migrations in the WIP commit", "rationale": "User chose to preserve the working tree rather than leave it dirty", "phase": "02"}
   ],
   "uncommitted_files": [],
-  "next_action": "Run /gsd-plan-phase 1 to start Foundation phase planning",
-  "context_notes": "Project initialization complete. All planning artifacts created and committed: PROJECT.md, config.json, REQUIREMENTS.md (60 v1 requirements), ROADMAP.md (7 phases), STATE.md, research/ directory with 5 documents. Next step is to plan Phase 1 (Foundation) which establishes multi-tenant infrastructure, auth, RBAC, RLS, i18n, app shell, and subscription entitlements."
+  "next_action": "User re-runs UAT test 1 (RETEST #4) in the browser and reports result; then continue UAT tests 2-8 per 02-UAT.md, recording results and fixing blockers as found.",
+  "context_notes": "Phase 02 (Club & People) is fully executed: all 8 plans done, schema pushed (00001..00010), automated gates green (vitest 98/98, tsc 0, lint 0, next build 0). We are in the UAT (human verification) stage — 02-UAT.md status 'testing', 8 tests defined, 0 passed, 1 issue (test 1), 7 pending. Session fixed the org-creation RLS blocker (permission denied for table organization_memberships) plus RETEST fixes. Dev server was shut down at pause. Next session resumes UAT testing."
 }

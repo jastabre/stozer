@@ -34,7 +34,7 @@ export default function OnboardingPage() {
 
     try {
       await createOrganization(data);
-      router.push("/sr/dashboard");
+      router.push("/sr");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Došlo je do greške");

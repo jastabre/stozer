@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
@@ -44,17 +44,24 @@ export function BottomNav() {
   const [navItems, setNavItems] = useState<NavItemType[]>([]);
   const [showMore, setShowMore] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false;
+
     async function loadRole() {
       const supabase = createBrowserClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (cancelled) return;
       const role = (user?.app_metadata?.user_role as string) || "club_president";
       setNavItems(getNavConfig(role as AppRole));
     }
     loadRole();
-  });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Coach gets 4 items in bottom nav, others get first 4
   const primaryNav = navItems.slice(0, 4);

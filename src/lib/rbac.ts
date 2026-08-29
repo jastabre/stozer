@@ -11,7 +11,7 @@ export interface NavItem {
 export const navConfigs: Record<string, NavItem[]> = {
   // §17: Club President - 8 main sections
   club_president: [
-    { label: "navigation.home", href: "/dashboard", icon: "Home" },
+    { label: "navigation.home", href: "", icon: "Home" },
     { label: "navigation.teams", href: "/teams", icon: "Users" },
     { label: "navigation.people", href: "/people", icon: "UsersRound" },
     { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
@@ -24,7 +24,7 @@ export const navConfigs: Record<string, NavItem[]> = {
 
   // §18: Youth Director - 5 sections
   youth_director: [
-    { label: "navigation.home", href: "/dashboard", icon: "Home" },
+    { label: "navigation.home", href: "", icon: "Home" },
     { label: "navigation.teams", href: "/teams", icon: "Users" },
     { label: "navigation.people", href: "/people", icon: "UsersRound" },
     { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
@@ -45,7 +45,7 @@ export const navConfigs: Record<string, NavItem[]> = {
 
   // Admin/Finance - configurable scope
   admin_finance: [
-    { label: "navigation.home", href: "/dashboard", icon: "Home" },
+    { label: "navigation.home", href: "", icon: "Home" },
     { label: "navigation.members", href: "/members", icon: "Users" },
     { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
     { label: "navigation.finances", href: "/finances", icon: "Wallet" },

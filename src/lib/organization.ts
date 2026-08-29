@@ -77,7 +77,7 @@ export async function hasPermission(permission: AppPermission): Promise<boolean>
 export async function requirePermission(permission: AppPermission): Promise<void> {
   const allowed = await hasPermission(permission);
   if (!allowed) {
-    redirect("/sr/dashboard");
+    redirect("/sr");
   }
 }
 

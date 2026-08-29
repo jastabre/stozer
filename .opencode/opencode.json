@@ -1,4 +1,5 @@
 {
+  "$schema": "https://opencode.ai/config.json",
   "permission": {
     "read": {
       "C:/jastaBre_labs/stozer/.opencode/gsd-core/*": "allow"

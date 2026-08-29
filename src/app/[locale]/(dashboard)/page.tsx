@@ -8,7 +8,12 @@ function daysUntil(dateStr: string): number {
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const org = await requireOrganization();
   const supabase = await createServerClient();
 
@@ -57,7 +62,7 @@ export default async function DashboardPage() {
         title="Počnite sa podešavanjem"
         description="Dodajte svoj prvi tim, igrače i osoblje kako biste počeli da koristite STOŽER."
         actionLabel="Dodaj tim"
-        actionHref="#"
+        actionHref={`/${locale}/teams`}
       />
     </div>
   );
