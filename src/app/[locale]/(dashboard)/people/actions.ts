@@ -1,41 +1,47 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireOrganization, hasPermission } from "@/lib/organization";
-import { createServerClient } from "@/lib/supabase/server";
 import {
-  createStaff,
+  requireOrganization,
+  hasPermission,
+  getOrganizationCurrency,
+} from "@/lib/organization";
+import { createServerClient } from "@/lib/supabase/server";
+import { reconcileStaffObligations } from "@/lib/staff-finance-data";
+import {
+  createStaffWithFunctions,
   deleteStaff,
   getStaffProfile,
-  linkStaffToUser,
   setStaffTeams,
-  updateStaff,
+  updateStaffWithFunctions,
   upsertStaffLicenses,
+  type StaffFunctionInput,
   type StaffLicenseInput,
   type StaffProfileInput,
 } from "@/lib/staff";
-import type { AppRole, Database } from "@/types/database";
+import { isPresetFunctionKey, staffFunctionLabel } from "@/lib/staff-functions";
 
-const roleValues = [
-  "club_president",
-  "youth_director",
-  "coach",
-  "admin_finance",
-] as const satisfies readonly AppRole[];
-
-const profileSchema = z.object({
-  first_name: z.string().trim().min(1).max(100),
-  last_name: z.string().trim().min(1).max(100),
-  photo_url: z.string().trim().max(500).optional(),
+const optionalProfileFields = {
   phone: z.string().trim().max(50).optional(),
   email: z.string().trim().email().max(255).optional().or(z.literal("")),
-  title: z.string().trim().max(100).optional(),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
   notes: z.string().trim().max(2000).optional(),
+};
+
+const updateStaffSchema = z.object({
+  first_name: z.string().trim().min(1).max(100),
+  last_name: z.string().trim().min(1).max(100),
+  ...optionalProfileFields,
+});
+
+const createStaffSchema = z.object({
+  athlete_id: z.string().uuid().optional().or(z.literal("")),
+  first_name: z.string().trim().max(100).optional().or(z.literal("")),
+  last_name: z.string().trim().max(100).optional().or(z.literal("")),
+  ...optionalProfileFields,
 });
 
 const licenseSchema = z.object({
@@ -46,18 +52,74 @@ const licenseSchema = z.object({
   valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-function profileInput(data: z.infer<typeof profileSchema>): StaffProfileInput {
+function profileInput(data: {
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  email?: string;
+  start_date?: string;
+  end_date?: string;
+  notes?: string;
+}): Omit<StaffProfileInput, "title"> {
   return {
     first_name: data.first_name,
     last_name: data.last_name,
-    photo_url: data.photo_url || null,
     phone: data.phone || null,
     email: data.email || null,
-    title: data.title || null,
     start_date: data.start_date || null,
     end_date: data.end_date || null,
     notes: data.notes || null,
   };
+}
+
+/**
+ * Read the repeated function_key/custom_label pairs emitted by the functions
+ * editor (first pair = primary function). Unknown keys, empty custom labels
+ * and exact duplicates are dropped; the action still requires ≥1 function.
+ */
+function parseStaffFunctions(formData: FormData): StaffFunctionInput[] {
+  const keys = formData.getAll("function_key").map((value) => String(value));
+  const labels = formData.getAll("custom_label").map((value) => String(value));
+  const seen = new Set<string>();
+  const functions: StaffFunctionInput[] = [];
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index];
+    if (key === "custom") {
+      const label = labels[index]?.trim();
+      if (!label) continue;
+      const dedupe = `custom:${label.toLowerCase()}`;
+      if (seen.has(dedupe)) continue;
+      seen.add(dedupe);
+      functions.push({ function_key: "custom", custom_label: label });
+    } else if (isPresetFunctionKey(key)) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      functions.push({ function_key: key, custom_label: null });
+    }
+  }
+  return functions;
+}
+
+function requestLocale(formData: FormData): "sr" | "en" {
+  const parsed = z.enum(["sr", "en"]).safeParse(formData.get("locale"));
+  return parsed.success ? parsed.data : "sr";
+}
+
+/**
+ * Internal compatibility only: the legacy `staff.title` column mirrors the
+ * first function of the submitted list. The UI has no "primary function"
+ * concept — all functions are equal — but existing code still reads `title`.
+ */
+function legacyStaffTitle(
+  functions: StaffFunctionInput[],
+  locale: "sr" | "en"
+): string {
+  const leading = functions[0];
+  return staffFunctionLabel(
+    leading.function_key,
+    locale,
+    leading.custom_label
+  );
 }
 
 function throwIfError(result: { error: string } | { ok: true }, message: string) {
@@ -72,14 +134,50 @@ async function requireStaffManager() {
   return org;
 }
 
-export async function createStaffAction(formData: FormData) {
+export type StaffCreateState = { error?: string } | null;
+
+/**
+ * Create a staff record only — never a Stožer account. Role and access are
+ * assigned exclusively in Klub → Korisnici i pristup; the profile card links
+ * there. The profile always carries at least one club function; "Postojeći
+ * igrač" mode links it to an existing athlete instead of retyping the name.
+ */
+export async function createStaffMemberAction(
+  _prev: StaffCreateState,
+  formData: FormData
+): Promise<StaffCreateState> {
   const org = await requireStaffManager();
-  const parsed = profileSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) throw new Error("Nevalidan unos osoblja");
+  const parsed = createStaffSchema.safeParse(
+    Object.fromEntries(formData.entries())
+  );
+  if (!parsed.success) {
+    return { error: "Popunite obavezna polja." };
+  }
+
+  const athleteId = parsed.data.athlete_id || null;
+  if (!athleteId && (!parsed.data.first_name || !parsed.data.last_name)) {
+    return { error: "Unesite ime i prezime osobe." };
+  }
+
+  const functions = parseStaffFunctions(formData);
+  if (functions.length === 0) {
+    return { error: "Izaberite funkciju u klubu." };
+  }
 
   const supabase = await createServerClient();
-  const result = await createStaff(supabase, org.organizationId, profileInput(parsed.data));
-  if ("error" in result) throw new Error("Greška pri kreiranju osoblja: " + result.error);
+  const result = await createStaffWithFunctions(supabase, org.organizationId, {
+    ...profileInput({
+      ...parsed.data,
+      first_name: parsed.data.first_name ?? "",
+      last_name: parsed.data.last_name ?? "",
+    }),
+    title: legacyStaffTitle(functions, requestLocale(formData)),
+    athlete_id: athleteId,
+    functions,
+  });
+  if ("error" in result) {
+    return { error: result.error };
+  }
   revalidatePath("/people");
   redirect(`/people/${result.id}`);
 }
@@ -88,16 +186,25 @@ export async function updateStaffAction(formData: FormData) {
   const org = await requireStaffManager();
   const staffId = formData.get("staff_id");
   if (typeof staffId !== "string") throw new Error("Nedostaje profil osoblja");
-  const parsed = profileSchema.safeParse(Object.fromEntries(formData.entries()));
+  const parsed = updateStaffSchema.safeParse(
+    Object.fromEntries(formData.entries())
+  );
   if (!parsed.success) throw new Error("Nevalidan unos osoblja");
+
+  const functions = parseStaffFunctions(formData);
+  if (functions.length === 0) throw new Error("Izaberite funkciju u klubu.");
 
   const supabase = await createServerClient();
   throwIfError(
-    await updateStaff(supabase, org.organizationId, staffId, profileInput(parsed.data)),
+    await updateStaffWithFunctions(supabase, org.organizationId, staffId, {
+      ...profileInput(parsed.data),
+      title: legacyStaffTitle(functions, requestLocale(formData)),
+      functions,
+    }),
     "Greška pri čuvanju profila"
   );
   revalidatePath("/people");
-  revalidatePath(`/people/${staffId}`);
+  revalidatePath("/people/[id]", "layout");
   redirect(`/people/${staffId}`);
 }
 
@@ -129,7 +236,8 @@ export async function saveStaffTeamsAction(formData: FormData) {
     await setStaffTeams(supabase, org.organizationId, staffId, seasonId, teamIds),
     "Greška pri čuvanju timova osoblja"
   );
-  revalidatePath(`/people/${staffId}`);
+  revalidatePath("/people");
+  revalidatePath("/people/[id]", "layout");
   redirect(`/people/${staffId}`);
 }
 
@@ -157,8 +265,9 @@ export async function saveStaffLicenseAction(formData: FormData) {
     await upsertStaffLicenses(supabase, org.organizationId, parsed.data.staff_id, nextRows),
     "Greška pri čuvanju licence"
   );
-  revalidatePath(`/people/${parsed.data.staff_id}`);
-  redirect(`/people/${parsed.data.staff_id}`);
+  revalidatePath("/people");
+  revalidatePath("/people/[id]", "layout");
+  redirect(`/people/${parsed.data.staff_id}/licenses`);
 }
 
 export async function deleteStaffLicenseAction(formData: FormData) {
@@ -182,117 +291,96 @@ export async function deleteStaffLicenseAction(formData: FormData) {
     await upsertStaffLicenses(supabase, org.organizationId, staffId, nextRows),
     "Greška pri brisanju licence"
   );
-  revalidatePath(`/people/${staffId}`);
-  redirect(`/people/${staffId}`);
-}
-
-function createAuthAdminClient() {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!serviceKey || !url) {
-    throw new Error("Povezivanje naloga zahteva podešen server-side Supabase admin ključ");
-  }
-  return createClient<Database>(url, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-async function findAuthUserByEmail(email: string) {
-  const admin = createAuthAdminClient();
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (error) throw new Error("Nije moguće pronaći korisnički nalog");
-  const user = data.users.find((candidate) => candidate.email?.toLowerCase() === email);
-  if (!user) throw new Error("Korisnički nalog sa tim emailom nije pronađen");
-  return { admin, user };
-}
-
-export async function linkStaffAccountAction(formData: FormData) {
-  const org = await requireStaffManager();
-  const staffId = formData.get("staff_id");
-  const email = formData.get("account_email");
-  const role = formData.get("role");
-  if (typeof staffId !== "string" || typeof email !== "string" || typeof role !== "string") {
-    throw new Error("Email i uloga naloga su obavezni");
-  }
-  // WR-08: explicit confirmation — linking overwrites the target account's
-  // access claims, so the UI must obtain consent before this runs.
-  if (formData.get("confirm") !== "on") {
-    throw new Error("Potvrdite povezivanje naloga");
-  }
-  const parsedRole = z.enum(roleValues).safeParse(role);
-  const parsedEmail = z.string().email().safeParse(email.trim().toLowerCase());
-  if (!parsedRole.success || !parsedEmail.success) throw new Error("Email ili uloga nisu validni");
-
-  // WR-04: linking an account grants an organization_memberships row, whose
-  // INSERT policy (membership_insert, 00001) only allows a club_president of
-  // the target org. Gate on that DB capability up front so a staff.manage
-  // holder without it (e.g. admin_finance) gets a clear error instead of an
-  // opaque failure AFTER the staff row was already updated.
-  const supabase = await createServerClient();
-  const { data: presidentMembership, error: presidentError } = await supabase
-    .from("organization_memberships")
-    .select("id")
-    .eq("organization_id", org.organizationId)
-    .eq("user_id", org.userId)
-    .eq("role", "club_president")
-    .maybeSingle();
-  if (presidentError || !presidentMembership) {
-    throw new Error("Samo predsednik kluba može da povezuje naloge");
-  }
-
-  const { admin, user } = await findAuthUserByEmail(parsedEmail.data);
-
-  // WR-08: linking overwrites the target user's app_metadata claims
-  // (organization_id, user_role) — the exact claims every access-control check
-  // (requireOrganization, hasPermission, every RLS policy) reads. Refuse when
-  // the account already belongs to another org: silently clobbering another
-  // tenant's claims would revoke their access and grant ours. The admin client
-  // (service role) bypasses RLS so this check sees all tenants.
-  const { data: existingMemberships, error: membershipsError } = await admin
-    .from("organization_memberships")
-    .select("organization_id")
-    .eq("user_id", user.id);
-  if (membershipsError) throw new Error("Nije moguće proveriti povezanost naloga");
-  const foreignMemberships =
-    existingMemberships?.filter(
-      (membership) => membership.organization_id !== org.organizationId
-    ) ?? [];
-  if (foreignMemberships.length > 0) {
-    throw new Error("Korisnički nalog je već povezan sa drugom organizacijom");
-  }
-
-  const { data: foreignStaffLinks, error: staffLinksError } = await admin
-    .from("staff")
-    .select("id")
-    .eq("user_id", user.id)
-    .neq("organization_id", org.organizationId);
-  if (staffLinksError) throw new Error("Nije moguće proveriti povezanost profila");
-  if (foreignStaffLinks && foreignStaffLinks.length > 0) {
-    throw new Error("Korisnički nalog je već povezan sa profilom osoblja u drugoj organizaciji");
-  }
-
-  throwIfError(
-    await linkStaffToUser(
-      supabase,
-      org.organizationId,
-      staffId,
-      user.id,
-      parsedRole.data
-    ),
-    "Greška pri povezivanju naloga"
-  );
-  // authorize() and requireOrganization() use app_metadata claims. Refresh
-  // the linked account's claims now so the newly granted role takes effect on
-  // its next session instead of leaving a membership that cannot authorize.
-  const { error: claimsError } = await admin.auth.admin.updateUserById(user.id, {
-    app_metadata: {
-      ...user.app_metadata,
-      organization_id: org.organizationId,
-      user_role: parsedRole.data,
-    },
-  });
-  if (claimsError) throw new Error("Nalog je povezan, ali uloga nije aktivirana: " + claimsError.message);
-  revalidatePath(`/people/${staffId}`);
   revalidatePath("/people");
-  redirect(`/people/${staffId}`);
+  revalidatePath("/people/[id]", "layout");
+  redirect(`/people/${staffId}/licenses`);
+}
+
+const staffCompensationSchema = z.object({
+  staff_id: z.string().uuid(),
+  valid_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  valid_until: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal("")),
+  note: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
+/**
+ * Save (upsert) a staff member's engagement compensation and reconcile its
+ * monthly obligations. "Bez naknade" (no_compensation=on) stores
+ * monthly_amount = NULL and removes every unpaid obligation; a positive amount
+ * regenerates them from valid_from. The currency is the club's single currency
+ * (never chosen per person). Requires staff_finance.manage.
+ */
+export async function saveStaffCompensationAction(formData: FormData) {
+  const org = await requireOrganization();
+  if (!(await hasPermission("staff_finance.manage"))) {
+    throw new Error("Nemate dozvolu za upravljanje naknadama");
+  }
+
+  const parsed = staffCompensationSchema.safeParse(
+    Object.fromEntries(formData.entries())
+  );
+  if (!parsed.success) {
+    throw new Error("Unesite početak važenja naknade.");
+  }
+
+  const noCompensation = formData.get("no_compensation") === "on";
+  let monthlyAmount: number | null = null;
+  if (!noCompensation) {
+    const amount = z
+      .number({ coerce: true })
+      .int()
+      .positive()
+      .max(100_000_000)
+      .safeParse(formData.get("monthly_amount"));
+    if (!amount.success) {
+      throw new Error("Unesite mesečni iznos naknade veći od 0.");
+    }
+    monthlyAmount = amount.data;
+  }
+
+  const noteRaw = parsed.data.note;
+  const note = noteRaw && noteRaw.trim() ? noteRaw.trim() : null;
+  const validUntil = parsed.data.valid_until || null;
+
+  const supabase = await createServerClient();
+  const currency = await getOrganizationCurrency(org.organizationId);
+
+  const { data, error } = await supabase
+    .from("staff_compensations")
+    .upsert(
+      {
+        organization_id: org.organizationId,
+        staff_id: parsed.data.staff_id,
+        monthly_amount: monthlyAmount,
+        currency,
+        valid_from: parsed.data.valid_from,
+        valid_until: validUntil,
+        note,
+      },
+      { onConflict: "staff_id" }
+    )
+    .select("id, staff_id, monthly_amount, currency, valid_from, valid_until")
+    .single();
+
+  if (error || !data) {
+    throw new Error("Greška pri čuvanju naknade. Pokušajte ponovo.");
+  }
+
+  await reconcileStaffObligations(supabase, org.organizationId, {
+    id: data.id,
+    staff_id: data.staff_id,
+    monthly_amount: data.monthly_amount,
+    currency: data.currency ?? "RSD",
+    valid_from: data.valid_from,
+    valid_until: data.valid_until,
+  });
+
+  revalidatePath("/people");
+  revalidatePath("/people/[id]", "layout");
+  revalidatePath("/finance");
+  revalidatePath("/finance/staff");
 }

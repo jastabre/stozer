@@ -3,54 +3,73 @@ import type { AppRole } from "@/types/database";
 export interface NavItem {
   label: string;
   href: string;
-  icon: string; // Lucide icon name
+  icon: string; // Lucide icon name (must exist in NavItem/BottomNav icon maps)
+  /** Utility items (e.g. Settings) render in a separate bottom zone. */
+  bottom?: boolean;
   children?: NavItem[];
 }
 
-// Navigation configs per role as defined in STOZER-BRIEF §17-19
+// Only SHIPPED modules appear in navigation. Calendar, training, matches,
+// attendance, reports, youth academy and first-team finance screens are not
+// implemented yet — they are hidden rather than offered as dead links.
 export const navConfigs: Record<string, NavItem[]> = {
-  // §17: Club President - 8 main sections
   club_president: [
     { label: "navigation.home", href: "", icon: "Home" },
-    { label: "navigation.teams", href: "/teams", icon: "Users" },
+    { label: "navigation.teams", href: "/teams", icon: "Shield" },
+    { label: "navigation.players", href: "/players", icon: "UserRound" },
     { label: "navigation.people", href: "/people", icon: "UsersRound" },
+    { label: "navigation.finances", href: "/finance", icon: "Coins" },
     { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
-    { label: "navigation.calendar", href: "/calendar", icon: "Calendar" },
-    { label: "navigation.finances", href: "/finances", icon: "Wallet" },
-    { label: "navigation.documents", href: "/documents", icon: "FileText" },
-    { label: "navigation.reports", href: "/reports", icon: "BarChart3" },
     { label: "navigation.club", href: "/club", icon: "Building2" },
+    { label: "navigation.settings", href: "/settings", icon: "Settings", bottom: true },
   ],
 
-  // §18: Youth Director - 5 sections
   youth_director: [
     { label: "navigation.home", href: "", icon: "Home" },
-    { label: "navigation.teams", href: "/teams", icon: "Users" },
+    { label: "navigation.teams", href: "/teams", icon: "Shield" },
+    { label: "navigation.players", href: "/players", icon: "UserRound" },
     { label: "navigation.people", href: "/people", icon: "UsersRound" },
+    { label: "navigation.finances", href: "/finance", icon: "Coins" },
     { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
-    { label: "navigation.youthAcademy", href: "/youth", icon: "GraduationCap" },
-    { label: "navigation.calendar", href: "/calendar", icon: "Calendar" },
-    { label: "navigation.documents", href: "/documents", icon: "FileText" },
-    { label: "navigation.reports", href: "/reports", icon: "BarChart3" },
+    { label: "navigation.club", href: "/club", icon: "Building2" },
+    { label: "navigation.settings", href: "/settings", icon: "Settings", bottom: true },
   ],
 
-  // §19: Coach - 4 mobile-first items
   coach: [
-    { label: "navigation.today", href: "/today", icon: "CalendarCheck" },
-    { label: "navigation.team", href: "/team", icon: "Users" },
+    { label: "navigation.home", href: "", icon: "Home" },
+    { label: "navigation.teams", href: "/teams", icon: "Shield" },
+    { label: "navigation.players", href: "/players", icon: "UserRound" },
     { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
-    { label: "navigation.calendar", href: "/calendar", icon: "Calendar" },
-    { label: "navigation.more", href: "/more", icon: "MoreHorizontal" },
+    { label: "navigation.settings", href: "/settings", icon: "Settings", bottom: true },
   ],
 
-  // Admin/Finance - configurable scope
   admin_finance: [
     { label: "navigation.home", href: "", icon: "Home" },
-    { label: "navigation.members", href: "/members", icon: "Users" },
+    { label: "navigation.teams", href: "/teams", icon: "Shield" },
+    { label: "navigation.players", href: "/players", icon: "UserRound" },
+    { label: "navigation.people", href: "/people", icon: "UsersRound" },
+    { label: "navigation.finances", href: "/finance", icon: "Coins" },
     { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
-    { label: "navigation.finances", href: "/finances", icon: "Wallet" },
-    { label: "navigation.reports", href: "/reports", icon: "BarChart3" },
-    { label: "navigation.settings", href: "/settings", icon: "Settings" },
+    { label: "navigation.club", href: "/club", icon: "Building2" },
+    { label: "navigation.settings", href: "/settings", icon: "Settings", bottom: true },
+  ],
+
+  // Equipment manager: the kit workflow (players/equipment/teams) and personal
+  // settings. No club settings, documents, finances or user administration.
+  equipment_manager: [
+    { label: "navigation.home", href: "", icon: "Home" },
+    { label: "navigation.teams", href: "/teams", icon: "Shield" },
+    { label: "navigation.players", href: "/players", icon: "UserRound" },
+    { label: "navigation.equipment", href: "/equipment", icon: "Shirt" },
+    { label: "navigation.settings", href: "/settings", icon: "Settings", bottom: true },
+  ],
+
+  // Medical staff: player/team context and the medical exams tab.
+  medical_staff: [
+    { label: "navigation.home", href: "", icon: "Home" },
+    { label: "navigation.teams", href: "/teams", icon: "Shield" },
+    { label: "navigation.players", href: "/players", icon: "UserRound" },
+    { label: "navigation.settings", href: "/settings", icon: "Settings", bottom: true },
   ],
 };
 

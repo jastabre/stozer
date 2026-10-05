@@ -2,7 +2,7 @@
  * Club athlete ID utilities (D-05).
  *
  * The club athlete ID is a stable, auto-assigned sequential number used as the
- * "poziv na broj" payment reference. Format is a C-prefixed number zero-padded
+ * "poziv na broj" payment reference. Format is an S-prefixed number zero-padded
  * to a minimum of 4 digits. It is never reassigned.
  *
  * This module is PURE — the counter mutation lives in the DB layer (see
@@ -11,10 +11,10 @@
 
 /**
  * Format a club athlete number as its payment-reference string.
- * 1 -> 'C0001', 42 -> 'C0042', 9999 -> 'C9999', 12345 -> 'C12345'.
+ * 1 -> 'S0001', 42 -> 'S0042', 9999 -> 'S9999', 12345 -> 'S12345'.
  */
 export function formatClubAthleteNumber(n: number): string {
-  return "C" + n.toString().padStart(4, "0");
+  return "S" + n.toString().padStart(4, "0");
 }
 
 /**

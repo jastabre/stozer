@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { LockedFeature } from "@/components/subscription/LockedFeature";
+import { useToast } from "@/components/ui/Toast";
+import { safeFeedbackMessage } from "@/lib/feedback";
 import {
   findDuplicate,
   identityKey,
@@ -63,7 +66,11 @@ function mapsFor(athletes: ImportPreviewAthlete[]) {
 }
 
 export default function ImportPage() {
+  const pathname = usePathname();
+  const locale = pathname.startsWith("/en") ? "en" : "sr";
   const t = useTranslations("import");
+  const tf = useTranslations("feedback");
+  const { success, error: toastError } = useToast();
   const [step, setStep] = useState<Step>(1);
   const [gate, setGate] = useState<Awaited<ReturnType<typeof getImportGateAction>> | null>(null);
   const [job, setJob] = useState<ParseUploadResult | null>(null);
@@ -81,7 +88,16 @@ export default function ImportPage() {
     let active = true;
     getImportGateAction()
       .then((result) => { if (active) setGate(result); })
-      .catch((error: unknown) => { if (active) setMessage(error instanceof Error ? error.message : t("errors.generic")); });
+      .catch((error: unknown) => {
+        if (active) {
+          setMessage(
+            safeFeedbackMessage(
+              error instanceof Error ? error.message : null,
+              t("errors.generic")
+            )
+          );
+        }
+      });
     return () => { active = false; };
   }, [t]);
 
@@ -128,7 +144,13 @@ export default function ImportPage() {
       setDecisions({});
       setStep(2);
     } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : t("errors.generic"));
+      setMessage(
+        safeFeedbackMessage(
+          error instanceof Error ? error.message : null,
+          t("errors.generic")
+        )
+      );
+      toastError(tf("importFailed"));
     }
   }
 
@@ -174,9 +196,15 @@ export default function ImportPage() {
         if (result.nextOffset <= offset) throw new Error(t("progress.noProgress"));
         offset = result.nextOffset;
       }
+      success(tf("importCompleted"));
     } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : t("errors.generic"));
-      setProgress((current) => current ? { ...current, status: "failed", errorMessage: error instanceof Error ? error.message : t("errors.generic") } : current);
+      const safeMessage = safeFeedbackMessage(
+        error instanceof Error ? error.message : null,
+        t("errors.generic")
+      );
+      setMessage(safeMessage);
+      setProgress((current) => current ? { ...current, status: "failed", errorMessage: safeMessage } : current);
+      toastError(tf("importFailed"));
     }
   }
 
@@ -196,14 +224,22 @@ export default function ImportPage() {
         setProgress(latest);
         if (latest.status === "done" || latest.status === "failed") window.clearInterval(timer);
       } catch (error: unknown) {
-        if (active) setMessage(error instanceof Error ? error.message : t("errors.generic"));
+        if (active) {
+          setMessage(
+            safeFeedbackMessage(
+              error instanceof Error ? error.message : null,
+              t("errors.generic")
+            )
+          );
+          toastError(tf("importFailed"));
+        }
       }
     }, 1500);
     return () => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [job, progress?.status, t]);
+  }, [job, progress?.status, t, tf, toastError]);
 
   if (!gate) {
     return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
@@ -346,7 +382,7 @@ export default function ImportPage() {
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted" aria-label={t("progress.processed", { count: progress.processedRows, total: progress.totalRows })}><div className="h-full bg-primary transition-all" style={{ width: `${progress.totalRows ? Math.min(100, progress.processedRows / progress.totalRows * 100) : 100}%` }} /></div>
           {serverErrors.length > 0 && <p className="mt-4 text-sm text-destructive">{t("progress.batchErrors", { count: serverErrors.length })}</p>}
           {progress.errorMessage && <p role="alert" className="mt-4 text-sm text-destructive">{progress.errorMessage}</p>}
-          {progress.status === "done" && <Link href="/players" className="mt-5 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{t("progress.playersLink")}</Link>}
+          {progress.status === "done" && <Link href={`/${locale}/players`} className="mt-5 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{t("progress.playersLink")}</Link>}
           {progress.status === "failed" && <button type="button" onClick={() => { setProgress(null); setStep(3); }} className="mt-5 rounded-lg border border-border px-4 py-2 text-sm">{t("progress.tryAgain")}</button>}
         </section>
       )}

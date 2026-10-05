@@ -15,6 +15,8 @@ export type AppRole =
   | "youth_director"
   | "coach"
   | "admin_finance"
+  | "equipment_manager"
+  | "medical_staff"
   | "super_admin"
 
 export type AppPermission =
@@ -33,6 +35,8 @@ export type AppPermission =
   | "youth_finance.manage"
   | "first_team_finance.view"
   | "first_team_finance.manage"
+  | "staff_finance.view"
+  | "staff_finance.manage"
   | "registrations.view"
   | "registrations.manage"
   | "contracts.view"
@@ -53,6 +57,14 @@ export type AppPermission =
   | "equipment.report"
   | "equipment.manage"
   | "medical.view"
+  | "medical.manage"
+  | "users.manage"
+  | "calendar.view"
+  | "venue.view"
+  | "venue.manage"
+  | "match.view"
+  | "match.manage"
+  | "attendance.view"
 
 export type SportType = "football" | "basketball"
 
@@ -183,6 +195,7 @@ export type Database = {
           organization_id: string
           photo_url: string | null
           position: string | null
+          preferred_jersey_number: number | null
           updated_at: string | null
         }
         Insert: {
@@ -198,6 +211,7 @@ export type Database = {
           organization_id: string
           photo_url?: string | null
           position?: string | null
+          preferred_jersey_number?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -213,11 +227,65 @@ export type Database = {
           organization_id?: string
           photo_url?: string | null
           position?: string | null
+          preferred_jersey_number?: number | null
           updated_at?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "athletes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_documents: {
+        Row: {
+          category: Database["public"]["Enums"]["club_document_category"]
+          created_at: string
+          created_by: string | null
+          file_size: number | null
+          filename: string
+          id: string
+          mime_type: string | null
+          name: string
+          notes: string | null
+          organization_id: string
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["club_document_category"]
+          created_at?: string
+          created_by?: string | null
+          file_size?: number | null
+          filename: string
+          id?: string
+          mime_type?: string | null
+          name: string
+          notes?: string | null
+          organization_id: string
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["club_document_category"]
+          created_at?: string
+          created_by?: string | null
+          file_size?: number | null
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_documents_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -238,6 +306,10 @@ export type Database = {
           updated_at: string
           valid_from: string | null
           valid_until: string | null
+          monthly_salary: number | null
+          currency: string
+          pay_schedule: string
+          custom_months: number[] | null
         }
         Insert: {
           athlete_id: string
@@ -251,6 +323,10 @@ export type Database = {
           updated_at?: string
           valid_from?: string | null
           valid_until?: string | null
+          monthly_salary?: number | null
+          currency?: string
+          pay_schedule?: string
+          custom_months?: number[] | null
         }
         Update: {
           athlete_id?: string
@@ -264,6 +340,10 @@ export type Database = {
           updated_at?: string
           valid_from?: string | null
           valid_until?: string | null
+          monthly_salary?: number | null
+          currency?: string
+          pay_schedule?: string
+          custom_months?: number[] | null
         }
         Relationships: [
           {
@@ -436,6 +516,93 @@ export type Database = {
           },
         ]
       }
+      athlete_item_assignments: {
+        Row: {
+          athlete_id: string
+          created_at: string | null
+          id: string
+          item_id: string
+          issued_at: string | null
+          note: string | null
+          number: string | null
+          organization_id: string
+          returned_at: string | null
+          size_bottom: string | null
+          size_top: string | null
+          state: Database["public"]["Enums"]["equipment_item_state"]
+          updated_at: string | null
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string | null
+          id?: string
+          item_id: string
+          issued_at?: string | null
+          note?: string | null
+          number?: string | null
+          organization_id: string
+          returned_at?: string | null
+          size_bottom?: string | null
+          size_top?: string | null
+          state?: Database["public"]["Enums"]["equipment_item_state"]
+          updated_at?: string | null
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          issued_at?: string | null
+          note?: string | null
+          number?: string | null
+          organization_id?: string
+          returned_at?: string | null
+          size_bottom?: string | null
+          size_top?: string | null
+          state?: Database["public"]["Enums"]["equipment_item_state"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      equipment_items: {
+        Row: {
+          bottom_piece_type_id: string | null
+          created_at: string | null
+          has_number: boolean
+          id: string
+          name: string
+          organization_id: string
+          size_mode: string
+          sort_order: number
+          top_piece_type_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bottom_piece_type_id?: string | null
+          created_at?: string | null
+          has_number?: boolean
+          id?: string
+          name: string
+          organization_id: string
+          size_mode?: string
+          sort_order?: number
+          top_piece_type_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bottom_piece_type_id?: string | null
+          created_at?: string | null
+          has_number?: boolean
+          id?: string
+          name?: string
+          organization_id?: string
+          size_mode?: string
+          sort_order?: number
+          top_piece_type_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       equipment_types: {
         Row: {
           created_at: string | null
@@ -537,6 +704,150 @@ export type Database = {
           },
         ]
       }
+      salary_obligation_adjustments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          obligation_id: string
+          organization_id: string
+          reason: string
+          reversal_note: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          obligation_id: string
+          organization_id: string
+          reason: string
+          reversal_note?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          obligation_id?: string
+          organization_id?: string
+          reason?: string
+          reversal_note?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      salary_obligations: {
+        Row: {
+          athlete_id: string
+          contract_id: string
+          created_at: string
+          currency: string
+          expected_amount: number
+          id: string
+          organization_id: string
+          period: string
+          period_start: string
+          updated_at: string
+        }
+        Insert: {
+          athlete_id: string
+          contract_id: string
+          created_at?: string
+          currency?: string
+          expected_amount: number
+          id?: string
+          organization_id: string
+          period: string
+          period_start: string
+          updated_at?: string
+        }
+        Update: {
+          athlete_id?: string
+          contract_id?: string
+          created_at?: string
+          currency?: string
+          expected_amount?: number
+          id?: string
+          organization_id?: string
+          period?: string
+          period_start?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contract_payments: {
+        Row: {
+          amount: number
+          athlete_id: string
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          method: string
+          note: string | null
+          obligation_id: string
+          organization_id: string
+          paid_on: string
+          reversal_note: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          athlete_id: string
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string
+          note?: string | null
+          obligation_id: string
+          organization_id: string
+          paid_on?: string
+          reversal_note?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          athlete_id?: string
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string
+          note?: string | null
+          obligation_id?: string
+          organization_id?: string
+          paid_on?: string
+          reversal_note?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       import_jobs: {
         Row: {
           column_mapping: Json
@@ -607,8 +918,10 @@ export type Database = {
           athlete_id: string
           created_at: string | null
           document_id: string | null
+          exam_type: string | null
           examined_on: string
           id: string
+          institution: string | null
           note: string | null
           organization_id: string
           updated_at: string | null
@@ -618,8 +931,10 @@ export type Database = {
           athlete_id: string
           created_at?: string | null
           document_id?: string | null
+          exam_type?: string | null
           examined_on: string
           id?: string
+          institution?: string | null
           note?: string | null
           organization_id: string
           updated_at?: string | null
@@ -629,8 +944,10 @@ export type Database = {
           athlete_id?: string
           created_at?: string | null
           document_id?: string | null
+          exam_type?: string | null
           examined_on?: string
           id?: string
+          institution?: string | null
           note?: string | null
           organization_id?: string
           updated_at?: string | null
@@ -729,6 +1046,9 @@ export type Database = {
           sport: string | null
           timezone: string | null
           updated_at: string | null
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
         }
         Insert: {
           club_athlete_counter?: number
@@ -741,6 +1061,9 @@ export type Database = {
           sport?: string | null
           timezone?: string | null
           updated_at?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
         }
         Update: {
           club_athlete_counter?: number
@@ -753,6 +1076,9 @@ export type Database = {
           sport?: string | null
           timezone?: string | null
           updated_at?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
         }
         Relationships: []
       }
@@ -814,6 +1140,7 @@ export type Database = {
           federation: string | null
           id: string
           identifier: string | null
+          note: string | null
           organization_id: string
           season_id: string | null
           status: string
@@ -828,6 +1155,7 @@ export type Database = {
           federation?: string | null
           id?: string
           identifier?: string | null
+          note?: string | null
           organization_id: string
           season_id?: string | null
           status?: string
@@ -842,6 +1170,7 @@ export type Database = {
           federation?: string | null
           id?: string
           identifier?: string | null
+          note?: string | null
           organization_id?: string
           season_id?: string | null
           status?: string
@@ -914,6 +1243,7 @@ export type Database = {
           athlete_id: string
           created_at: string | null
           id: string
+          jersey_name: string | null
           jersey_number: number | null
           organization_id: string
           season_id: string
@@ -924,6 +1254,7 @@ export type Database = {
           athlete_id: string
           created_at?: string | null
           id?: string
+          jersey_name?: string | null
           jersey_number?: number | null
           organization_id: string
           season_id: string
@@ -934,6 +1265,7 @@ export type Database = {
           athlete_id?: string
           created_at?: string | null
           id?: string
+          jersey_name?: string | null
           jersey_number?: number | null
           organization_id?: string
           season_id?: string
@@ -981,6 +1313,7 @@ export type Database = {
           organization_id: string
           starts_on: string
           updated_at: string | null
+          competition_months: number[] | null
         }
         Insert: {
           created_at?: string | null
@@ -991,6 +1324,7 @@ export type Database = {
           organization_id: string
           starts_on: string
           updated_at?: string | null
+          competition_months?: number[] | null
         }
         Update: {
           created_at?: string | null
@@ -1001,6 +1335,7 @@ export type Database = {
           organization_id?: string
           starts_on?: string
           updated_at?: string | null
+          competition_months?: number[] | null
         }
         Relationships: [
           {
@@ -1014,6 +1349,7 @@ export type Database = {
       }
       staff: {
         Row: {
+          athlete_id: string | null
           created_at: string | null
           email: string | null
           end_date: string | null
@@ -1031,6 +1367,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          athlete_id?: string | null
           created_at?: string | null
           email?: string | null
           end_date?: string | null
@@ -1048,6 +1385,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          athlete_id?: string | null
           created_at?: string | null
           email?: string | null
           end_date?: string | null
@@ -1066,11 +1404,127 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "staff_athlete_org_fkey"
+            columns: ["organization_id", "athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
             foreignKeyName: "staff_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_compensations: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          monthly_amount: number | null
+          note: string | null
+          organization_id: string
+          staff_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          monthly_amount?: number | null
+          note?: string | null
+          organization_id: string
+          staff_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          monthly_amount?: number | null
+          note?: string | null
+          organization_id?: string
+          staff_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_compensations_org_staff_fkey"
+            columns: ["organization_id", "staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_compensations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_compensations_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_functions: {
+        Row: {
+          created_at: string
+          custom_label: string | null
+          function_key: string
+          id: string
+          is_primary: boolean
+          organization_id: string
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_label?: string | null
+          function_key: string
+          id?: string
+          is_primary?: boolean
+          organization_id: string
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_label?: string | null
+          function_key?: string
+          id?: string
+          is_primary?: boolean
+          organization_id?: string
+          staff_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_functions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_functions_staff_org_fkey"
+            columns: ["organization_id", "staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["organization_id", "id"]
           },
         ]
       }
@@ -1118,6 +1572,153 @@ export type Database = {
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_payments: {
+        Row: {
+          amount: number
+          compensation_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          method: string
+          note: string | null
+          obligation_id: string
+          organization_id: string
+          paid_on: string
+          reversal_note: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          compensation_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string
+          note?: string | null
+          obligation_id: string
+          organization_id: string
+          paid_on?: string
+          reversal_note?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          compensation_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string
+          note?: string | null
+          obligation_id?: string
+          organization_id?: string
+          paid_on?: string
+          reversal_note?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          staff_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_payments_org_compensation_fk"
+            columns: ["organization_id", "compensation_id"]
+            isOneToOne: false
+            referencedRelation: "staff_compensations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_payments_org_obligation_fk"
+            columns: ["organization_id", "obligation_id"]
+            isOneToOne: false
+            referencedRelation: "staff_salary_obligations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_payments_org_staff_fk"
+            columns: ["organization_id", "staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_salary_obligations: {
+        Row: {
+          compensation_id: string
+          created_at: string
+          currency: string
+          expected_amount: number
+          id: string
+          organization_id: string
+          period: string
+          period_start: string
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          compensation_id: string
+          created_at?: string
+          currency?: string
+          expected_amount: number
+          id?: string
+          organization_id: string
+          period: string
+          period_start: string
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          compensation_id?: string
+          created_at?: string
+          currency?: string
+          expected_amount?: number
+          id?: string
+          organization_id?: string
+          period?: string
+          period_start?: string
+          staff_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_salary_obligations_org_compensation_fk"
+            columns: ["organization_id", "compensation_id"]
+            isOneToOne: false
+            referencedRelation: "staff_compensations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_salary_obligations_org_staff_fk"
+            columns: ["organization_id", "staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_salary_obligations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1315,6 +1916,66 @@ export type Database = {
           },
         ]
       }
+      team_equipment_item_requirements: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string
+          organization_id: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id: string
+          organization_id: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          organization_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_equipment_item_requirements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_equipment_item_requirements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_equipment_item_requirements_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_equipment_item_requirements_item_org_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "team_equipment_item_requirements_team_org_fkey"
+            columns: ["organization_id", "team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       team_equipment_requirements: {
         Row: {
           created_at: string | null
@@ -1415,6 +2076,227 @@ export type Database = {
           },
         ]
       }
+      venues: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          note: string | null
+          organization_id: string
+          updated_at: string | null
+          venue_type: Database["public"]["Enums"]["venue_type"]
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          note?: string | null
+          organization_id: string
+          updated_at?: string | null
+          venue_type?: Database["public"]["Enums"]["venue_type"]
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          note?: string | null
+          organization_id?: string
+          updated_at?: string | null
+          venue_type?: Database["public"]["Enums"]["venue_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainings: {
+        Row: {
+          created_at: string | null
+          duration_minutes: number | null
+          ends_at: string
+          id: string
+          note: string | null
+          organization_id: string
+          recurrence_rule: string | null
+          series_id: string | null
+          starts_at: string
+          status: Database["public"]["Enums"]["training_status"]
+          team_id: string
+          updated_at: string | null
+          venue_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          ends_at: string
+          id?: string
+          note?: string | null
+          organization_id: string
+          recurrence_rule?: string | null
+          series_id?: string | null
+          starts_at: string
+          status?: Database["public"]["Enums"]["training_status"]
+          team_id: string
+          updated_at?: string | null
+          venue_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          ends_at?: string
+          id?: string
+          note?: string | null
+          organization_id?: string
+          recurrence_rule?: string | null
+          series_id?: string | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["training_status"]
+          team_id?: string
+          updated_at?: string | null
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_coaches: {
+        Row: {
+          created_at: string | null
+          id: string
+          organization_id: string
+          staff_id: string
+          training_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          organization_id: string
+          staff_id: string
+          training_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string
+          staff_id?: string
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_coaches_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_coaches_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_coaches_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance: {
+        Row: {
+          absence_resolution: Database["public"]["Enums"]["absence_resolution"]
+          athlete_id: string
+          id: string
+          organization_id: string
+          reason_note: string | null
+          reason_preset: string | null
+          recorded_at: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          training_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          absence_resolution?: Database["public"]["Enums"]["absence_resolution"]
+          athlete_id: string
+          id?: string
+          organization_id: string
+          reason_note?: string | null
+          reason_preset?: string | null
+          recorded_at?: string | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+          training_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          absence_resolution?: Database["public"]["Enums"]["absence_resolution"]
+          athlete_id?: string
+          id?: string
+          organization_id?: string
+          reason_note?: string | null
+          reason_preset?: string | null
+          recorded_at?: string | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+          training_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1455,6 +2337,8 @@ export type Database = {
         | "youth_finance.manage"
         | "first_team_finance.view"
         | "first_team_finance.manage"
+        | "staff_finance.view"
+        | "staff_finance.manage"
         | "registrations.view"
         | "registrations.manage"
         | "contracts.view"
@@ -1475,12 +2359,28 @@ export type Database = {
         | "equipment.report"
         | "equipment.manage"
         | "medical.view"
+        | "medical.manage"
+        | "users.manage"
+        | "calendar.view"
+        | "venue.view"
+        | "venue.manage"
+        | "match.view"
+        | "match.manage"
+        | "attendance.view"
       app_role:
         | "club_president"
         | "youth_director"
         | "coach"
         | "admin_finance"
+        | "equipment_manager"
+        | "medical_staff"
         | "super_admin"
+      club_document_category:
+        | "form"
+        | "memorandum"
+        | "regulation"
+        | "contract"
+        | "other"
       contract_status: "draft" | "active" | "terminated" | "expired"
       document_type:
         | "registration"
@@ -1502,6 +2402,10 @@ export type Database = {
         | "purchased"
         | "rejected"
       sport_type: "football" | "basketball"
+      venue_type: "field" | "hall" | "balloon" | "other"
+      training_status: "scheduled" | "cancelled" | "completed"
+      attendance_status: "present" | "absent" | "late"
+      absence_resolution: "unresolved" | "excused" | "unexcused"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1645,6 +2549,8 @@ export const Constants = {
         "youth_finance.manage",
         "first_team_finance.view",
         "first_team_finance.manage",
+        "staff_finance.view",
+        "staff_finance.manage",
         "registrations.view",
         "registrations.manage",
         "contracts.view",
@@ -1665,13 +2571,24 @@ export const Constants = {
         "equipment.report",
         "equipment.manage",
         "medical.view",
+        "medical.manage",
+        "users.manage",
       ],
       app_role: [
         "club_president",
         "youth_director",
         "coach",
         "admin_finance",
+        "equipment_manager",
+        "medical_staff",
         "super_admin",
+      ],
+      club_document_category: [
+        "form",
+        "memorandum",
+        "regulation",
+        "contract",
+        "other",
       ],
       contract_status: ["draft", "active", "terminated", "expired"],
       document_type: [

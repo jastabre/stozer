@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { BottomNav } from "@/components/layout/BottomNav";
+import { ClubTheme } from "@/components/club/ClubTheme";
+import { getNavConfig } from "@/lib/rbac";
+import type { AppRole } from "@/types/database";
+import { AppShell } from "@/components/layout/AppShell";
 
 export default async function DashboardLayout({
   children,
@@ -21,27 +24,47 @@ export default async function DashboardLayout({
     redirect("/sr/onboarding");
   }
 
+  // Translate nav labels server-side through the current locale so the
+  // sidebar, top bar and bottom navigation always render in the active
+  // language. getNavConfig() emits full keys ("navigation.home"), so resolve
+  // them with the root namespace (getTranslations() with no argument).
+  const role = (user.app_metadata?.user_role as AppRole) || "club_president";
+  const t = await getTranslations();
+  const navItems = getNavConfig(role).map((item) => ({
+    ...item,
+    label: t(item.label),
+  }));
+
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("name, primary_color, secondary_color, logo_url")
+    .eq("id", orgId)
+    .maybeSingle();
+  const orgName = orgRow?.name || "STOŽER";
+
+  const userInitials = (user.user_metadata?.full_name as string | undefined)
+    ?.split(" ")
+    .filter(Boolean)
+    .map((part: string) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || (user.email ? user.email[0].toUpperCase() : "?");
+
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex md:w-64 md:flex-shrink-0">
-        <Sidebar orgId={orgId} />
-      </div>
-
-      {/* Mobile sidebar (overlay) */}
-      <div className="md:hidden">
-        <Sidebar orgId={orgId} />
-      </div>
-
-      {/* Main content area */}
-      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-          {children}
-        </div>
-      </main>
-
-      {/* Mobile bottom navigation */}
-      <BottomNav />
+    <div className="flex h-dvh overflow-hidden bg-background">
+      <ClubTheme primary={orgRow?.primary_color} />
+      <AppShell
+        navItems={navItems}
+        orgName={orgName}
+        logoUrl={orgRow?.logo_url}
+        userEmail={user.email}
+        userInitials={userInitials}
+        logoutLabel={t("navigation.logout")}
+        moreLabel={t("navigation.more")}
+        closeLabel={t("navigation.close")}
+      >
+        {children}
+      </AppShell>
     </div>
   );
 }

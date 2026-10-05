@@ -1,51 +1,84 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-29T22:04:57.855Z",
-  "phase": "02",
-  "phase_name": "02-club-people",
-  "phase_dir": ".planning/phases/02-club-people",
+  "timestamp": "2026-09-30T19:09:16.289Z",
+  "phase": "03",
+  "phase_name": "03-scheduling-attendance",
+  "phase_dir": ".planning/phases/03-scheduling-attendance",
   "plan": null,
-  "task": 1,
-  "total_tasks": 8,
-  "status": "paused",
+  "task": 0,
+  "total_tasks": 0,
+  "status": "phase-02-complete",
   "completed_tasks": [
-    {"id": 1, "name": "Plan 02-01: Test infrastructure (vitest) + Phase 2 dependencies", "status": "done"},
-    {"id": 2, "name": "Plan 02-02: TRACER seasons/teams/players schema, club athlete ID, roster, rollover", "status": "done"},
-    {"id": 3, "name": "Plan 02-03: Registrations + status helper + medical examinations", "status": "done"},
-    {"id": 4, "name": "Plan 02-04: Staff profiles with licenses + guardian contacts", "status": "done"},
-    {"id": 5, "name": "Plan 02-05: Typed documents + private storage + player contracts", "status": "done"},
-    {"id": 6, "name": "Plan 02-06: CSV/XLSX import wizard", "status": "done"},
-    {"id": 7, "name": "Plan 02-07: Equipment", "status": "done"},
-    {"id": 8, "name": "Plan 02-08: [BLOCKING] schema push + type regen + full phase gates (00001..00010 applied, vitest 98/98, tsc 0, lint 0, build 0)", "status": "done"},
-    {"id": 9, "name": "UAT test 1 (club setup flow): fix org-creation blocker G-02-1R2 + RETEST fixes (middleware, nested html/body, onboarding RPC, BottomNav, dashboard CTA)", "status": "in_progress", "progress": "All fixes applied and statically verified (vitest 98/98, tsc 0, lint 0, build 0; HTTP checks for public routes + /sr and /en dashboard CTA). RETEST #4 not yet run by user."}
+    {
+      "id": 1,
+      "name": "Phase 2 stabilization round (equipment domain rebuild)",
+      "status": "done",
+      "progress": "Equipment model corrected: player size profile (six clothing pieces), equipment catalog (equipment_items), player assignments (athlete_item_assignments), redesigned Oprema igrača, per-team XLSX export (jersey name fallback to surname), jersey_name on seasonal_memberships. Prior rounds: player edit, membership assign/remove, users & access, confirm dialogs, nav i18n fix. Migrations 00017-00020 pushed to remote."
+    },
+    {
+      "id": 2,
+      "name": "Reconciliation round - verified repository reality (2026-09-28)",
+      "status": "done",
+      "progress": "Static gates verified green: typecheck PASS, lint PASS (0 errors), vitest 403/403 PASS. Application-wide loading/pending states IMPLEMENTED IN CODE (MutationForm, FormSubmitButton, ConfirmDeleteButton, useMutationFeedback, route loading.tsx). Scope-drift inventory recorded: first-team finance, club branding/logo, org currency, expanded role/permission matrix, users & access, staff functions + athlete link, equipment + settings."
+    },
+    {
+      "id": 3,
+      "name": "Remote migration verification (2026-09-28)",
+      "status": "done",
+      "progress": "npx supabase migration list --linked shows Local and Remote match for 00001-00036. Migrations 00021-00036 confirmed applied on the linked Supabase project. No missing or mismatched migrations."
+    },
+    {
+      "id": 4,
+      "name": "Phase 2 manual UAT (accepted by the user)",
+      "status": "done",
+      "progress": "User confirmed manual UAT PASSED and Phase 2 COMPLETE on 2026-09-30. 02-UAT.md rewritten with status: complete, all 8 tests result: pass, gaps G-02-1/G-02-1R/G-02-1R2 resolved, and an explicit MANUAL acceptance record (no automated UAT/e2e suite exists)."
+    },
+    {
+      "id": 5,
+      "name": "Phase 2 GSD closure + reconciliation (2026-09-30)",
+      "status": "done",
+      "progress": "02-VERIFICATION.md canonicalized human_needed -> passed (GSD frontmatter.set). `phase complete 02` ran: ROADMAP Phase 2 checkbox + Progress table = Complete 2026-09-30; STATE advanced to Phase 3 (ready to plan); REQUIREMENTS STRC-06/07 and REG-04/06/07/09 flipped Pending -> Complete after verifying the implementation in code/migrations. Stale .continue-here.md removed; WINDOWS.md open entry 1 marked fixed (open_count 0). Phase 3 product context captured in PROJECT.md."
+    }
   ],
   "remaining_tasks": [
-    {"id": 10, "name": "UAT test 1 (RETEST #4): run club setup end-to-end, confirm org creation + team + player with C-format ID", "status": "not_started"},
-    {"id": 11, "name": "UAT test 2: CR-01 create-player edge case (no active season) — no orphaned/invisible athlete", "status": "not_started"},
-    {"id": 12, "name": "UAT test 3: Bulk import CSV + XLSX >50 rows, unknown teams, duplicates (WR-06 limitation)", "status": "not_started"},
-    {"id": 13, "name": "UAT test 4: Season rollover identity persistence", "status": "not_started"},
-    {"id": 14, "name": "UAT test 5: Registration status colors", "status": "not_started"},
-    {"id": 15, "name": "UAT test 6: Staff profile + license pill + account linking (WR-03/WR-04)", "status": "not_started"},
-    {"id": 16, "name": "UAT test 7: Documents upload/download/delete + expiry overview (WR-09)", "status": "not_started"},
-    {"id": 17, "name": "UAT test 8: Cross-tenant RLS sanity check", "status": "not_started"}
+    {
+      "id": 6,
+      "name": "Equipment UX polish (optional)",
+      "status": "not_started",
+      "progress": "Functional; possible visual polish pass (compact rows, spacing, responsive). Not a blocker, carried from Phase 2."
+    }
   ],
-  "blockers": [
-    {"description": "UAT tests 1-8 require live browser + live Supabase project with real user sessions; only static/automated verification done so far", "type": "human_action", "workaround": "User walks each flow in a browser against localhost:3000 with a freshly registered user"}
-  ],
+  "blockers": [],
   "async_jobs": [],
-  "human_actions_pending": [
-    {"action": "Re-run UAT test 1 (RETEST #4): register/verify/login, submit 'Kreiraj klub', create season + team + player, confirm C-format club ID on roster", "context": "Org-creation RLS blocker G-02-1R2 was fixed (00014-00016 + onboarding action rewrite). RETEST #3 passed org+team creation; #4 is the current in-progress retest", "blocking": true},
-    {"action": "Walk UAT tests 2-8 in the browser (see 02-UAT.md)", "context": "All remaining human verification items; no automated e2e coverage exists for these flows", "blocking": false}
-  ],
+  "human_actions_pending": [],
   "decisions": [
-    {"decision": "Fix org-creation blocker via SECURITY DEFINER RPC create_organization_onboarding + search_path=public + restored base grants", "rationale": "Root cause G-02-1R2: missing base grants blocked RLS evaluation; RPC makes atomic org+membership+subscription creation possible", "phase": "02"},
-    {"decision": "Use service-role admin client to set JWT app_metadata claims + refresh session after onboarding", "rationale": "RLS policies read claims that anon-key updates cannot set; stale session token would keep reading old claims", "phase": "02"},
-    {"decision": "Public auth/landing paths short-circuit before handleI18nRouting in middleware", "rationale": "localePrefix 'always' rewrote unprefixed /login -> /en/login which 404'd; public paths must bypass i18n redirect", "phase": "02"},
-    {"decision": "Remove <html>/<body> from [locale]/layout.tsx; root layout owns document elements", "rationale": "Nested document elements broke hydration + RSC navigation (G-02-1R)", "phase": "02"},
-    {"decision": "Replace BottomNav useState(() => loadRole()) effect hack with useEffect + cancellation flag; fix dashboard 'Dodaj tim' CTA actionHref='#' -> /{locale}/teams", "rationale": "RETEST #4 fixes: async setNavItems could update after unmount; broken CTA did nothing", "phase": "02"},
-    {"decision": "Included all uncommitted UAT source fixes + migrations in the WIP commit", "rationale": "User chose to preserve the working tree rather than leave it dirty", "phase": "02"}
+    {
+      "decision": "Phase 2 accepted as complete on manual UAT only — 02-UAT.md records MANUAL acceptance by the user on 2026-09-30",
+      "rationale": "No automated UAT/e2e suite exists; do not report this as automated UAT",
+      "phase": "02"
+    },
+    {
+      "decision": "Phase 2 traceability reconciled against actual code: STRC-06, STRC-07, REG-04, REG-06, REG-07, REG-09 were implemented but marked Pending; now Complete",
+      "rationale": "Old summaries are not proof; implementation was verified in migrations + app code before flipping. REG-04/REG-07 reconciled to the accepted product decision that documents are profile-scoped and attachments do not drive structured registration/medical/contract status",
+      "phase": "02"
+    },
+    {
+      "decision": "Org-level sport configuration already exists (organizations.sport, CHECK football/basketball; onboarding RPC; inherit_team_sport trigger) and player position presets already derive from it (positionsForSport)",
+      "rationale": "Prevents creating a second/parallel sport system in Phase 3; the only gap is that org sport is not editable after onboarding",
+      "phase": "03"
+    },
+    {
+      "decision": "Phase 3 product context captured in PROJECT.md (sport support, unified activity calendar, sport-aware matches, training attendance, venue conflicts, calendar tasks) — NOT researched or planned",
+      "rationale": "The future Phase 3 discussion must not re-litigate or lose these decisions; discussion reads PROJECT.md/STATE.md",
+      "phase": "03"
+    },
+    {
+      "decision": "Monitoring the known remaining GSD bookkeeping lag: REQUIREMENTS.md CORE-01..09 and ROADMAP Progress row 1 (Foundation) still read Not started/Pending although Phase 1 is checked complete",
+      "rationale": "Pre-existing, outside Phase 2 scope, and correcting it would require fabricating a Phase 1 verification artifact; left untouched and documented",
+      "phase": "01"
+    }
   ],
   "uncommitted_files": [],
-  "next_action": "User re-runs UAT test 1 (RETEST #4) in the browser and reports result; then continue UAT tests 2-8 per 02-UAT.md, recording results and fixing blockers as found.",
-  "context_notes": "Phase 02 (Club & People) is fully executed: all 8 plans done, schema pushed (00001..00010), automated gates green (vitest 98/98, tsc 0, lint 0, next build 0). We are in the UAT (human verification) stage — 02-UAT.md status 'testing', 8 tests defined, 0 passed, 1 issue (test 1), 7 pending. Session fixed the org-creation RLS blocker (permission denied for table organization_memberships) plus RETEST fixes. Dev server was shut down at pause. Next session resumes UAT testing."
+  "next_action": "Begin Phase 3 discussion: /gsd-discuss-phase 3 (then /gsd-plan-phase 3). Do NOT start Phase 3 research, planning or implementation automatically.",
+  "context_notes": "Phase 2 (Club & People) is COMPLETE. Manual UAT passed and was accepted by the user on 2026-09-30; 02-UAT.md holds the manual-acceptance record. 02-VERIFICATION.md status = passed. ROADMAP/REQUIREMENTS/STATE reconciled. Phase 3 is defined in the roadmap (OPER-01..OPER-08) with TBD plan placeholders and NO phase directory, research or plans — preserve that. Phase 3 product context lives in PROJECT.md. Working tree remains intentionally uncommitted (large diff) — do not commit or discard."
 }

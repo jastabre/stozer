@@ -1,82 +1,141 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { createBrowserClient } from "@/lib/supabase/browser";
-import { getNavConfig, type NavItem as NavItemType } from "@/lib/rbac";
-import type { AppRole } from "@/types/database";
-import { Menu, X } from "lucide-react";
+import { X } from "lucide-react";
+import type { NavItem as NavItemType } from "@/lib/rbac";
 import { NavItem } from "./NavItem";
-import { UserMenu } from "./UserMenu";
+import { ClubBrandLink } from "./ClubBrandLink";
+import { cn } from "@/lib/utils";
 
-export function Sidebar({ orgId: _orgId }: { orgId: string }) {
-  const [open, setOpen] = useState(false);
-  const [navItems, setNavItems] = useState<NavItemType[]>([]);
+interface SidebarProps {
+  variant: "desktop" | "mobile";
+  navItems: NavItemType[];
+  orgName: string;
+  logoUrl?: string | null;
+  closeLabel: string;
+  open?: boolean;
+  onClose?: () => void;
+}
+
+/**
+ * Premium neutral sidebar. The club's primary accent appears only on the
+ * active item. Operational sections sit at the top; utility items (Settings)
+ * render in a separated bottom zone above the product footer.
+ */
+export function Sidebar({
+  variant,
+  navItems,
+  orgName,
+  logoUrl,
+  closeLabel,
+  open,
+  onClose,
+}: SidebarProps) {
+  if (variant === "mobile") {
+    return (
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-sidebar-border bg-sidebar-background transition-transform duration-200 md:hidden",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+        aria-hidden={!open}
+      >
+        <SidebarBody
+          navItems={navItems}
+          orgName={orgName}
+          logoUrl={logoUrl}
+          closeLabel={closeLabel}
+          onClose={onClose}
+        />
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="hidden w-[17rem] shrink-0 flex-col border-r border-sidebar-border bg-sidebar-background md:flex">
+      <SidebarBody
+        navItems={navItems}
+        orgName={orgName}
+        logoUrl={logoUrl}
+        closeLabel={closeLabel}
+      />
+    </aside>
+  );
+}
+
+function SidebarBody({
+  navItems,
+  orgName,
+  logoUrl,
+  closeLabel,
+  onClose,
+}: {
+  navItems: NavItemType[];
+  orgName: string;
+  logoUrl?: string | null;
+  closeLabel: string;
+  onClose?: () => void;
+}) {
+  const pathname = usePathname();
   const t = useTranslations("navigation");
+  const locale = pathname.startsWith("/en") ? "en" : "sr";
 
-  useEffect(() => {
-    async function loadRole() {
-      const supabase = createBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const role = (user?.app_metadata?.user_role as string) || "club_president";
-      setNavItems(getNavConfig(role as AppRole));
-    }
-    loadRole();
-  }, []);
+  const core = navItems.filter((item) => !item.bottom);
+  const utility = navItems.filter((item) => item.bottom);
 
   return (
     <>
-      {/* Mobile hamburger */}
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-lg bg-card shadow-md md:hidden"
-        aria-label={t("home")}
-      >
-        <Menu className="h-5 w-5" />
-      </button>
-
-      {/* Overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setOpen(false)}
+      {/* Brand block — club identity; the whole crest + name links home. Same
+        * height + border as the main top header so their dividers are one line. */}
+      <div className="flex h-[var(--shell-header-height)] shrink-0 items-center justify-between border-b border-border px-4">
+        <ClubBrandLink
+          href={`/${locale}`}
+          onNavigate={onClose}
+          ariaLabel={t("goHome")}
+          orgName={orgName}
+          logoUrl={logoUrl}
+          size="md"
         />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-sidebar-background transition-transform duration-200 md:relative md:translate-x-0 ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex h-16 items-center justify-between border-b border-border px-4">
-          <span className="text-lg font-bold">STOŽER</span>
+        {onClose && (
           <button
-            onClick={() => setOpen(false)}
-            className="flex h-11 w-11 items-center justify-center rounded-lg md:hidden"
-            aria-label="Zatvori meni"
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            aria-label={closeLabel}
           >
             <X className="h-5 w-5" />
           </button>
-        </div>
+        )}
+      </div>
 
-        <nav className="flex-1 space-y-1 p-3">
-          {navItems.map((item) => (
+      {/* Operational navigation */}
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
+        {core.map((item) => (
+          <NavItem
+            key={item.href}
+            label={item.label}
+            href={item.href}
+            icon={item.icon}
+            onNavigate={onClose}
+          />
+        ))}
+      </nav>
+
+      {/* Utility navigation (Settings) */}
+      {utility.length > 0 && (
+        <nav className="shrink-0 space-y-0.5 border-t border-border px-3 py-2">
+          {utility.map((item) => (
             <NavItem
               key={item.href}
               label={item.label}
               href={item.href}
               icon={item.icon}
+              onNavigate={onClose}
             />
           ))}
         </nav>
-
-        <div className="border-t border-border p-3">
-          <UserMenu />
-        </div>
-      </aside>
+      )}
     </>
   );
 }

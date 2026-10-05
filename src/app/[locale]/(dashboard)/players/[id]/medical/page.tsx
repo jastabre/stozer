@@ -1,31 +1,30 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { format } from "date-fns";
+import { ChevronDown, Plus } from "lucide-react";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
+import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
+import { MutationForm } from "@/components/ui/MutationForm";
 import { requireOrganization, hasPermission } from "@/lib/organization";
 import { createServerClient } from "@/lib/supabase/server";
-import {
-  listMedicalExaminations,
-  getOrganizationSettings,
-  listDocuments,
-} from "@/lib/club-data";
-import {
-  medicalStatus,
-  daysUntil,
-  MEDICAL_LABELS,
-  type MedicalTone,
-} from "@/lib/status";
+import { listMedicalExaminations, getOrganizationSettings } from "@/lib/club-data";
+import { medicalStatus, daysUntil, MEDICAL_LABELS } from "@/lib/status";
+import { formatDmy } from "@/lib/date-format";
 import {
   saveMedicalExamination,
   deleteMedicalExamination,
 } from "./actions";
+import { StatusBadge, type StatusTone as BadgeTone } from "@/components/ui/StatusBadge";
+import { DateField } from "@/components/ui/DateField";
+import type { MedicalExamination } from "@/lib/club-data";
 
-const PILL_CLASSES: Record<MedicalTone, string> = {
-  not_recorded: "bg-slate-100 text-slate-700",
-  valid: "bg-emerald-100 text-emerald-800",
-  expiring_soon: "bg-amber-100 text-amber-800",
-  expired: "bg-rose-100 text-rose-800",
+const MED_TONE: Record<string, BadgeTone> = {
+  not_recorded: "neutral",
+  valid: "green",
+  expiring_soon: "yellow",
+  expired: "red",
 };
+
+const PRESET_KEYS = ["periodic", "systematic", "sports", "other"] as const;
 
 export default async function PlayerMedicalPage({
   params,
@@ -36,22 +35,22 @@ export default async function PlayerMedicalPage({
   const org = await requireOrganization();
   const supabase = await createServerClient();
   const t = await getTranslations("players.medical");
+  const tc = await getTranslations("common");
+  const tf = await getTranslations("feedback");
 
   // Read honors medical.view OR registrations.view (RLS matches; D-38 coaches
-  // hold medical.view). Writes require registrations.manage.
+  // hold medical.view). Writes require medical.manage (00034: separated from
+  // registrations.manage).
   const [canViewMedical, canViewReg, canManage] = await Promise.all([
     hasPermission("medical.view"),
     hasPermission("registrations.view"),
-    hasPermission("registrations.manage"),
+    hasPermission("medical.manage"),
   ]);
   if (!canViewMedical && !canViewReg) notFound();
 
-  const [examinations, settings, documents] = await Promise.all([
+  const [examinations, settings] = await Promise.all([
     listMedicalExaminations(supabase, org.organizationId, id),
     getOrganizationSettings(supabase, org.organizationId),
-    hasPermission("documents.view").then((allowed) =>
-      allowed ? listDocuments(supabase, org.organizationId, "athlete", id) : []
-    ),
   ]);
 
   const threshold =
@@ -66,214 +65,232 @@ export default async function PlayerMedicalPage({
     : medicalStatus(null, threshold);
   const daysLeft = latest ? daysUntil(new Date(latest.valid_until)) : null;
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          href={`/players/${id}`}
-          className="text-sm text-primary hover:underline"
-        >
-          ← {t("back")}
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold">{t("title")}</h1>
-        <p className="mt-1 text-xs text-muted-foreground">{t("privacyNote")}</p>
-      </div>
+  // A short valid-until sentence per record; past dates read as "was valid".
+  function validLine(e: MedicalExamination): string {
+    const date = formatDmy(e.valid_until);
+    return e.valid_until < todayIso()
+      ? t("wasValidUntil", { date })
+      : t("validUntil", { date });
+  }
+  function todayIso(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
 
-      {/* Current medical status banner (D-37) */}
-      <section className="rounded-xl border border-border p-5">
-        <h2 className="text-lg font-semibold">{t("currentStatus")}</h2>
-        {latest ? (
-          <div className="mt-3 flex items-center gap-3">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${PILL_CLASSES[tone]}`}
-            >
-              {t(`tones.${MEDICAL_LABELS[tone]}`)}
+  // Shared add/edit form — one pattern for both actions (D-42: administrative
+  // fields only; no diagnoses, findings or history).
+  function renderExamForm(exam: MedicalExamination | null) {
+    return (
+      <MutationForm
+        action={saveMedicalExamination}
+        successMessage={tf("medicalSaved")}
+        errorMessage={tf("saveFailed")}
+        className="grid gap-3 sm:grid-cols-2"
+      >
+        <input type="hidden" name="athlete_id" value={id} />
+        {exam && <input type="hidden" name="id" value={exam.id} />}
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {t("examinedOn")}
+          <DateField
+            name="examined_on"
+            defaultValue={exam?.examined_on ?? ""}
+            required
+            ariaLabel={t("examinedOn")}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {t("validUntilLabel")}
+          <DateField
+            name="valid_until"
+            defaultValue={exam?.valid_until ?? ""}
+            required
+            ariaLabel={t("validUntilLabel")}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {t("examType")}
+          <input
+            name="exam_type"
+            list="exam-type-presets"
+            defaultValue={exam?.exam_type ?? ""}
+            placeholder={t("examTypePlaceholder")}
+            autoComplete="off"
+            className="mt-1 h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {t("institution")}
+          <input
+            name="institution"
+            defaultValue={exam?.institution ?? ""}
+            placeholder={t("institutionPlaceholder")}
+            className="mt-1 h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground sm:col-span-2">
+          {t("note")}
+          <textarea
+            name="note"
+            rows={2}
+            defaultValue={exam?.note ?? ""}
+            placeholder={t("notePlaceholder")}
+            className="mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+          />
+        </label>
+        <div className="flex items-center justify-between gap-3 sm:col-span-2">
+          <p className="text-xs text-muted-foreground">{t("clearanceOnly")}</p>
+          <FormSubmitButton
+            idleLabel={t("submit")}
+            pendingLabel={t("submitting")}
+            className="h-10 shrink-0 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
+          />
+        </div>
+      </MutationForm>
+    );
+  }
+
+  const header = (
+    <div className="min-w-0">
+      <h2 className="text-lg font-semibold text-foreground">{t("title")}</h2>
+      <p className="mt-0.5 text-sm text-muted-foreground">{t("privacyNote")}</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Shared preset for every exam-type input on this tab. */}
+      <datalist id="exam-type-presets">
+        {PRESET_KEYS.map((k) => (
+          <option key={k} value={t(`examTypes.${k}`)} />
+        ))}
+      </datalist>
+
+      {/* Header + primary action on one line; the add form expands beneath. */}
+      {canManage ? (
+        <details className="group">
+          <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-x-4 gap-y-2 [&::-webkit-details-marker]:hidden">
+            {header}
+            <span className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              {t("add")}
+              <ChevronDown
+                className="h-3.5 w-3.5 opacity-80 transition-transform group-open:rotate-180"
+                aria-hidden="true"
+              />
             </span>
-            <span className="text-sm text-muted-foreground">
-              {t("validUntil", {
-                date: format(new Date(latest.valid_until), "dd MMM yyyy"),
-              })}
-              {daysLeft !== null && daysLeft >= 0 && (
-                <span className="ml-1">
+          </summary>
+          <div className="mt-3 rounded-xl border border-border bg-card p-4 sm:p-5">
+            {renderExamForm(null)}
+          </div>
+        </details>
+      ) : (
+        header
+      )}
+
+      {/* Current status — compact, one glance. */}
+      <section className="rounded-xl border border-border bg-card px-4 py-3.5 sm:px-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {t("currentStatus")}
+          </p>
+          <StatusBadge
+            tone={MED_TONE[tone]}
+            label={t(`tones.${MEDICAL_LABELS[tone]}`)}
+          />
+        </div>
+        {latest ? (
+          <div className="mt-1.5 space-y-0.5">
+            <p className="text-sm text-foreground">
+              {validLine(latest)}
+              {tone === "expiring_soon" && daysLeft !== null && daysLeft >= 0 && (
+                <span className="text-muted-foreground">
+                  {" "}
                   · {t("expiringIn", { count: daysLeft })}
                 </span>
               )}
-            </span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("examinedOnLine", { date: formatDmy(latest.examined_on) })}
+              {(latest.exam_type || latest.institution) &&
+                ` · ${[latest.exam_type, latest.institution].filter(Boolean).join(" · ")}`}
+            </p>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {t("noExamination")}
-          </p>
+          <p className="mt-1.5 text-sm text-muted-foreground">{t("noExamination")}</p>
         )}
-        <p className="mt-3 text-xs text-muted-foreground">
-          {t("clearanceOnly")}
-        </p>
       </section>
 
-      {/* Add/edit examination (D-33; D-42: administrative fields only) */}
-      {canManage && (
-        <details className="rounded-xl border border-border p-4">
-          <summary className="cursor-pointer text-sm font-medium">
-            {t("add")}
-          </summary>
-          <form
-            action={saveMedicalExamination}
-            className="mt-4 grid gap-3 sm:grid-cols-2"
-          >
-            <input type="hidden" name="athlete_id" value={id} />
-            <label className="flex flex-col text-xs text-muted-foreground">
-              {t("examinedOn")}
-              <input
-                type="date"
-                name="examined_on"
-                required
-                className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground"
-              />
-            </label>
-            <label className="flex flex-col text-xs text-muted-foreground">
-              {t("validUntilLabel")}
-              <input
-                type="date"
-                name="valid_until"
-                required
-                className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground"
-              />
-            </label>
-            <label className="flex flex-col text-xs text-muted-foreground sm:col-span-2">
-              {t("note")}
-              <textarea
-                name="note"
-                rows={2}
-                placeholder={t("notePlaceholder")}
-                className="mt-1 rounded-lg border px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="flex flex-col text-xs text-muted-foreground sm:col-span-2">
-              {t("document")}
-              <select name="document_id" className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground">
-                <option value="">{t("noDocument")}</option>
-                {documents.filter((document) => document.doc_type === "medical").map((document) => <option key={document.id} value={document.id}>{document.filename}</option>)}
-              </select>
-            </label>
-            <div className="flex items-end sm:col-span-2">
-              <button
-                type="submit"
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              >
-                {t("submit")}
-              </button>
-            </div>
-          </form>
-        </details>
-      )}
-
-      {/* Examination records (D-37: latest first, history secondary) */}
-      <section className="rounded-xl border border-border p-5">
-        <h2 className="text-lg font-semibold">{t("history")}</h2>
-        {examinations.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">{t("empty")}</p>
-        ) : (
-          <div className="mt-3 space-y-3">
+      {/* History — compact rows; hidden entirely when there is nothing to show. */}
+      {examinations.length > 0 && (
+        <section className="overflow-hidden rounded-xl border border-border bg-card">
+          <header className="border-b border-border px-4 py-2.5 sm:px-5">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {t("history")}
+            </h2>
+          </header>
+          <ul className="divide-y divide-border">
             {examinations.map((e) => {
               const et = medicalStatus(new Date(e.valid_until), threshold);
-              const rem = daysUntil(new Date(e.valid_until));
+              const meta = [e.exam_type, e.institution].filter(Boolean).join(" · ");
               return (
-                <div
-                  key={e.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${PILL_CLASSES[et]}`}
-                    >
-                      {t(`tones.${MEDICAL_LABELS[et]}`)}
-                    </span>
-                    <div className="text-sm">
-                      <p className="font-medium">
-                        {t("range", {
-                          from: format(new Date(e.examined_on), "dd MMM yyyy"),
-                          to: format(new Date(e.valid_until), "dd MMM yyyy"),
-                        })}
-                        {rem >= 0 ? ` · ${t("expiringIn", { count: rem })}` : ""}
+                <li key={e.id} className="px-4 py-3 sm:px-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium tabular-nums text-foreground">
+                        {formatDmy(e.examined_on)}.
                       </p>
-                      {e.note ? (
-                        <p className="text-xs text-muted-foreground">{e.note}</p>
-                      ) : null}
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {validLine(e)}
+                      </p>
+                      {meta && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {meta}
+                        </p>
+                      )}
+                      {e.note && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {e.note}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <StatusBadge
+                        tone={MED_TONE[et]}
+                        label={t(`tones.${MEDICAL_LABELS[et]}`)}
+                      />
                     </div>
                   </div>
+
                   {canManage && (
-                    <div className="flex gap-2">
-                      <details className="relative">
-                        <summary className="cursor-pointer text-xs font-medium text-primary">
+                    <div className="mt-2 flex items-center gap-3">
+                      <details className="group/edit">
+                        <summary className="cursor-pointer list-none text-xs font-medium text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
                           {t("edit")}
                         </summary>
-                        <form
-                          action={saveMedicalExamination}
-                          className="absolute right-0 z-10 mt-2 w-72 space-y-2 rounded-lg border border-border bg-card p-3 text-left"
-                        >
-                          <input type="hidden" name="id" value={e.id} />
-                          <input type="hidden" name="athlete_id" value={id} />
-                          <label className="flex flex-col text-xs text-muted-foreground">
-                            {t("examinedOn")}
-                            <input
-                              type="date"
-                              name="examined_on"
-                              defaultValue={e.examined_on}
-                              required
-                              className="mt-1 w-full rounded-lg border px-2 py-1 text-sm"
-                            />
-                          </label>
-                          <label className="flex flex-col text-xs text-muted-foreground">
-                            {t("validUntilLabel")}
-                            <input
-                              type="date"
-                              name="valid_until"
-                              defaultValue={e.valid_until}
-                              required
-                              className="mt-1 w-full rounded-lg border px-2 py-1 text-sm"
-                            />
-                          </label>
-                          <textarea
-                            name="note"
-                            defaultValue={e.note ?? ""}
-                            rows={2}
-                            placeholder={t("notePlaceholder")}
-                            className="w-full rounded-lg border px-2 py-1 text-sm"
-                          />
-                          <select name="document_id" defaultValue={e.document_id ?? ""} className="w-full rounded-lg border px-2 py-1 text-sm">
-                            <option value="">{t("noDocument")}</option>
-                            {documents.filter((document) => document.doc_type === "medical").map((document) => <option key={document.id} value={document.id}>{document.filename}</option>)}
-                          </select>
-                          <button
-                            type="submit"
-                            className="w-full rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground"
-                          >
-                            {t("submit")}
-                          </button>
-                        </form>
+                        <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 sm:p-4">
+                          {renderExamForm(e)}
+                        </div>
                       </details>
-                      <form action={deleteMedicalExamination}>
-                        <input type="hidden" name="id" value={e.id} />
-                        <input
-                          type="hidden"
-                          name="athlete_id"
-                          value={id}
-                        />
-                        <button
-                          type="submit"
-                          className="rounded-lg border border-destructive px-2.5 py-1 text-xs text-destructive"
-                        >
-                          {t("delete")}
-                        </button>
-                      </form>
+                      <ConfirmDeleteButton
+                        action={deleteMedicalExamination}
+                        hiddenFields={{ id: e.id, athlete_id: id }}
+                        triggerLabel={t("delete")}
+                        triggerClassName="rounded text-xs font-medium text-muted-foreground transition-colors hover:text-destructive"
+                        title={t("deleteConfirmTitle")}
+                        body={t("deleteConfirmBody")}
+                        confirmLabel={t("deleteConfirm")}
+                        cancelLabel={tc("cancel")}
+                        pendingLabel={tc("deleting")}
+                        successMessage={tf("itemDeleted")}
+                        errorMessage={tf("deleteFailed")}
+                      />
                     </div>
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
-        )}
-      </section>
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

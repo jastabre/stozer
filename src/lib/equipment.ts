@@ -13,33 +13,8 @@ export const SIZE_PRESETS = {
 } as const;
 
 export type EquipmentType = Database["public"]["Tables"]["equipment_types"]["Row"];
-export type AthleteEquipmentItem = Database["public"]["Tables"]["athlete_equipment"]["Row"];
 export type TeamEquipmentItem = Database["public"]["Tables"]["team_equipment"]["Row"];
 export type EquipmentRequest = Database["public"]["Tables"]["equipment_requests"]["Row"];
-
-export type EquipmentFilter = "complete" | "missing" | "not_issued" | "lost_damaged";
-
-export interface PlayerEquipmentRow {
-  athlete_id: string;
-  first_name: string;
-  last_name: string;
-  club_athlete_number: number;
-  team_id: string;
-  jersey_number: number | null;
-  items: Array<AthleteEquipmentItem & { equipment_type: EquipmentType }>;
-  summary: {
-    complete: boolean;
-    missing: boolean;
-    not_issued: boolean;
-    lost_or_damaged: boolean;
-  };
-}
-
-export interface PlayerEquipmentOverview {
-  types: EquipmentType[];
-  rows: PlayerEquipmentRow[];
-  counts: Record<EquipmentFilter, number>;
-}
 
 export interface TeamEquipmentListItem extends TeamEquipmentItem {
   team_name: string | null;
@@ -55,7 +30,7 @@ export interface EquipmentRequestListItem extends EquipmentRequest {
 export interface TeamEquipmentRequirement {
   id: string;
   team_id: string;
-  equipment_type_id: string;
+  item_id: string;
 }
 
 export async function listEquipmentTypes(
@@ -111,8 +86,8 @@ export async function listTeamEquipmentRequirements(
   teamId?: string
 ): Promise<TeamEquipmentRequirement[]> {
   let query = supabase
-    .from("team_equipment_requirements")
-    .select("id, team_id, equipment_type_id")
+    .from("team_equipment_item_requirements")
+    .select("id, team_id, item_id")
     .eq("organization_id", orgId);
   if (teamId) query = query.eq("team_id", teamId);
   const { data, error } = await query;
@@ -123,224 +98,124 @@ export async function setTeamEquipmentRequirements(
   supabase: Supabase,
   orgId: string,
   teamId: string,
-  equipmentTypeIds: string[]
+  itemIds: string[]
 ): Promise<{ ok: true } | { error: string }> {
-  const [{ data: team }, { data: types }] = await Promise.all([
+  const [{ data: team }, { data: items }] = await Promise.all([
     supabase.from("teams").select("id").eq("organization_id", orgId).eq("id", teamId).maybeSingle(),
-    equipmentTypeIds.length
-      ? supabase.from("equipment_types").select("id").eq("organization_id", orgId).in("id", equipmentTypeIds)
+    itemIds.length
+      ? supabase.from("equipment_items").select("id").eq("organization_id", orgId).in("id", itemIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
-  if (!team || (types?.length ?? 0) !== new Set(equipmentTypeIds).size) {
-    return { error: "Team or equipment type is outside the organization" };
+  if (!team || (items?.length ?? 0) !== new Set(itemIds).size) {
+    return { error: "Team or equipment item is outside the organization" };
   }
   const { error: deleteError } = await supabase
-    .from("team_equipment_requirements")
+    .from("team_equipment_item_requirements")
     .delete()
     .eq("organization_id", orgId)
     .eq("team_id", teamId);
   if (deleteError) return { error: deleteError.message };
-  const uniqueTypeIds = [...new Set(equipmentTypeIds)];
-  if (uniqueTypeIds.length === 0) return { ok: true };
-  const { error } = await supabase.from("team_equipment_requirements").insert(
-    uniqueTypeIds.map((equipmentTypeId) => ({
+  const uniqueItemIds = [...new Set(itemIds)];
+  if (uniqueItemIds.length === 0) return { ok: true };
+  const { error } = await supabase.from("team_equipment_item_requirements").insert(
+    uniqueItemIds.map((itemId) => ({
       organization_id: orgId,
       team_id: teamId,
-      equipment_type_id: equipmentTypeId,
+      item_id: itemId,
     }))
   );
   return error ? { error: error.message } : { ok: true };
 }
 
+export interface PlayerEquipmentSummary {
+  /** False when the team has no required equipment configured yet. */
+  hasRequirements: boolean;
+  /** Number of required catalog articles for the team. */
+  requiredCount: number;
+  /** Required articles currently covered by an active (issued) assignment. */
+  coveredCount: number;
+  /** Required articles NOT covered by any active assignment. */
+  missingCount: number;
+  /** Ids of the required articles that are missing. */
+  missingItemIds: string[];
+  /** Active (issued) catalog items (regardless of requirements). */
+  issuedCount: number;
+  /** Items currently marked lost or damaged. */
+  lostDamagedCount: number;
+  /** All required articles covered (and at least one requirement exists). */
+  complete: boolean;
+}
+
 /**
- * Return one row for each current-season athlete and enabled equipment type.
- * Missing rows are intentionally materialized as `missing` so a promoted or
- * newly added athlete is immediately visible in the operational overview.
+ * Compute the operational summary for one player from the team's REQUIRED
+ * catalog articles. A requirement (equipment item) is covered when the player
+ * has an ACTIVE (issued) assignment for that exact item — returned, lost and
+ * damaged assignments do not satisfy a requirement. Articles that share the
+ * same underlying parts stay independent because coverage is by item id, not
+ * by part. No requirements configured → neutral summary, never "everything is
+ * missing".
  */
-export async function getPlayerEquipmentOverview(
-  supabase: Supabase,
-  orgId: string,
-  teamId: string | undefined,
-  seasonId: string,
-  filter?: EquipmentFilter
-): Promise<PlayerEquipmentOverview> {
-  const [types, membershipResult] = await Promise.all([
-    listEquipmentTypes(supabase, orgId),
-    supabase
-      .from("seasonal_memberships")
-      .select("athlete_id, team_id, jersey_number, athletes(first_name, last_name, club_athlete_number)")
-      .eq("organization_id", orgId)
-      .eq("season_id", seasonId)
-      .eq("status", "active")
-      .order("athlete_id"),
-  ]);
-
-  const memberships = (membershipResult.data ?? []) as unknown as Array<{
-    athlete_id: string;
-    team_id: string;
-    jersey_number: number | null;
-    athletes: {
-      first_name: string;
-      last_name: string;
-      club_athlete_number: number;
-    } | null;
-  }>;
-  const selected = teamId
-    ? memberships.filter((membership) => membership.team_id === teamId)
-    : memberships;
-  const athleteIds = selected.map((membership) => membership.athlete_id);
-  const typeIds = types.map((type) => type.id);
-  const itemResult = athleteIds.length && typeIds.length
-    ? await supabase
-        .from("athlete_equipment")
-        .select("*")
-        .eq("organization_id", orgId)
-        .in("athlete_id", athleteIds)
-        .in("equipment_type_id", typeIds)
-    : { data: [], error: null };
-  const items = (itemResult.data ?? []) as AthleteEquipmentItem[];
-  const itemsByKey = new Map(items.map((item) => [`${item.athlete_id}:${item.equipment_type_id}`, item]));
-  const typeById = new Map(types.map((type) => [type.id, type]));
-  const counts: Record<EquipmentFilter, number> = {
-    complete: 0,
-    missing: 0,
-    not_issued: 0,
-    lost_damaged: 0,
-  };
-
-  const rows = selected.flatMap((membership) => {
-    const athlete = membership.athletes;
-    if (!athlete) return [];
-    const rowItems = types.map((type) => {
-      const existing = itemsByKey.get(`${membership.athlete_id}:${type.id}`);
-      return {
-        ...(existing ?? {
-          id: `missing:${membership.athlete_id}:${type.id}`,
-          organization_id: orgId,
-          athlete_id: membership.athlete_id,
-          equipment_type_id: type.id,
-          size_value: null,
-          size_value_upper: null,
-          state: "missing" as EquipmentItemState,
-          issued_at: null,
-          returned_at: null,
-          note: null,
-          created_at: "",
-          updated_at: "",
-        }),
-        equipment_type: typeById.get(type.id) as EquipmentType,
-      };
-    });
-    const absent = rowItems.some((item) => item.id.startsWith("missing:"));
-    const missing = absent || rowItems.some((item) => item.state === "missing");
-    const notIssued = missing || rowItems.some((item) => item.state === "returned");
-    const lostOrDamaged = rowItems.some(
-      (item) => item.state === "lost" || item.state === "damaged"
-    );
-    const complete = rowItems.length > 0 && rowItems.every((item) => item.state === "issued");
-    const summary = { complete, missing, not_issued: notIssued, lost_or_damaged: lostOrDamaged };
-    const row: PlayerEquipmentRow = {
-      athlete_id: membership.athlete_id,
-      first_name: athlete.first_name,
-      last_name: athlete.last_name,
-      club_athlete_number: athlete.club_athlete_number,
-      team_id: membership.team_id,
-      jersey_number: membership.jersey_number,
-      items: rowItems,
-      summary,
-    };
-    for (const key of Object.keys(counts) as EquipmentFilter[]) {
-      if (summary[key === "lost_damaged" ? "lost_or_damaged" : key]) counts[key] += 1;
-    }
-    return filter && !summary[filter === "lost_damaged" ? "lost_or_damaged" : filter]
-      ? []
-      : [row];
-  });
-
-  return { types, rows, counts };
-}
-
-async function ensureEquipmentReferences(
-  supabase: Supabase,
-  orgId: string,
-  athleteId: string,
-  typeId: string
-): Promise<{ ok: true } | { error: string }> {
-  const [{ data: athlete }, { data: equipmentType }] = await Promise.all([
-    supabase.from("athletes").select("id").eq("id", athleteId).eq("organization_id", orgId).maybeSingle(),
-    supabase.from("equipment_types").select("id").eq("id", typeId).eq("organization_id", orgId).maybeSingle(),
-  ]);
-  if (!athlete || !equipmentType) return { error: "Equipment reference is outside the organization" };
-  return { ok: true };
-}
-
-export async function setAthleteSize(
-  supabase: Supabase,
-  orgId: string,
-  athleteId: string,
-  typeId: string,
-  sizeValue: string | null,
-  sizeValueUpper?: string | null
-): Promise<{ ok: true } | { error: string }> {
-  const references = await ensureEquipmentReferences(supabase, orgId, athleteId, typeId);
-  if ("error" in references) return references;
-  const { error } = await supabase.from("athlete_equipment").upsert(
-    {
-      organization_id: orgId,
-      athlete_id: athleteId,
-      equipment_type_id: typeId,
-      size_value: sizeValue?.trim() || null,
-      size_value_upper: sizeValueUpper?.trim() || null,
-    },
-    { onConflict: "athlete_id,equipment_type_id" }
+export function summarizePlayerEquipment(
+  assignments: AthleteItemAssignment[],
+  requiredItemIds: Set<string>
+): PlayerEquipmentSummary {
+  const issued = assignments.filter((assignment) => assignment.state === "issued");
+  const coveredItemIds = new Set(issued.map((assignment) => assignment.item_id));
+  const missingItemIds = [...requiredItemIds].filter(
+    (itemId) => !coveredItemIds.has(itemId)
   );
-  return error ? { error: error.message } : { ok: true };
+  const hasRequirements = requiredItemIds.size > 0;
+  return {
+    hasRequirements,
+    requiredCount: requiredItemIds.size,
+    coveredCount: requiredItemIds.size - missingItemIds.length,
+    missingCount: missingItemIds.length,
+    missingItemIds,
+    issuedCount: issued.length,
+    lostDamagedCount: assignments.filter(
+      (assignment) => assignment.state === "lost" || assignment.state === "damaged"
+    ).length,
+    complete: hasRequirements && missingItemIds.length === 0,
+  };
 }
 
-const allowedTransitions: Record<EquipmentItemState, EquipmentItemState[]> = {
-  missing: ["missing", "issued"],
-  issued: ["issued", "returned", "lost", "damaged"],
-  returned: ["returned", "issued"],
-  lost: ["lost", "issued"],
-  damaged: ["damaged", "issued"],
+/**
+ * Default types seeded by migration 00009 and disabled by 00018 (their data
+ * was carried into the six single-piece types). Kept in the database for
+ * history only: hidden from the settings UI and never offered in the
+ * issue/size workflows.
+ */
+export const LEGACY_EQUIPMENT_TYPE_NAMES = [
+  "Match Kit",
+  "Tracksuit",
+  "Training Kit",
+] as const;
+
+export function isLegacyEquipmentType(name: string): boolean {
+  return (LEGACY_EQUIPMENT_TYPE_NAMES as readonly string[]).includes(name);
+}
+
+/** Default seeded equipment type names → i18n key for natural localized labels. */
+export const DEFAULT_EQUIPMENT_TYPE_KEYS: Record<string, string> = {
+  "Match Shirt": "matchShirt",
+  "Match Shorts": "matchShorts",
+  "Tracksuit Top": "tracksuitTop",
+  "Tracksuit Bottom": "tracksuitBottom",
+  "Training Shirt": "trainingShirt",
+  "Training Shorts": "trainingShorts",
+  // Legacy upper/lower defaults (disabled by migration 00018) — keep mapped so
+  // old records still render localized names.
+  "Match Kit": "matchKit",
+  Tracksuit: "tracksuit",
+  "Training Kit": "trainingKit",
 };
 
-export async function transitionAthleteItem(
-  supabase: Supabase,
-  orgId: string,
-  athleteId: string,
-  typeId: string,
-  state: EquipmentItemState,
-  note?: string | null
-): Promise<{ ok: true } | { error: string }> {
-  const references = await ensureEquipmentReferences(supabase, orgId, athleteId, typeId);
-  if ("error" in references) return references;
-  const { data: existing, error: readError } = await supabase
-    .from("athlete_equipment")
-    .select("*")
-    .eq("organization_id", orgId)
-    .eq("athlete_id", athleteId)
-    .eq("equipment_type_id", typeId)
-    .maybeSingle();
-  if (readError) return { error: readError.message };
-  const current = existing?.state ?? "missing";
-  if (!allowedTransitions[current].includes(state)) {
-    return { error: `Invalid equipment transition: ${current} -> ${state}` };
-  }
-  const now = new Date().toISOString();
-  const { error } = await supabase.from("athlete_equipment").upsert(
-    {
-      organization_id: orgId,
-      athlete_id: athleteId,
-      equipment_type_id: typeId,
-      state,
-      issued_at: state === "issued" ? now : existing?.issued_at ?? null,
-      returned_at: state === "returned" ? now : state === "issued" ? null : existing?.returned_at ?? null,
-      note: note?.trim() || existing?.note || null,
-    },
-    { onConflict: "athlete_id,equipment_type_id" }
-  );
-  return error ? { error: error.message } : { ok: true };
+export function localizeEquipmentTypeName(
+  name: string,
+  t: (key: string) => string
+): string {
+  const key = DEFAULT_EQUIPMENT_TYPE_KEYS[name];
+  return key ? t(`typeNames.${key}`) : name;
 }
 
 export async function listTeamEquipment(
@@ -493,4 +368,358 @@ export async function decideEquipmentRequest(
     .eq("id", id)
     .eq("organization_id", orgId);
   return error ? { error: error.message } : { ok: true };
+}
+
+export type EquipmentItem = Database["public"]["Tables"]["equipment_items"]["Row"];
+export type AthleteItemAssignment = Database["public"]["Tables"]["athlete_item_assignments"]["Row"];
+
+/** How many size values a catalog article uses. */
+export type EquipmentSizeMode = "none" | "single" | "split";
+
+export async function listEquipmentItems(
+  supabase: Supabase,
+  orgId: string
+): Promise<EquipmentItem[]> {
+  const { data, error } = await supabase
+    .from("equipment_items")
+    .select("*")
+    .eq("organization_id", orgId)
+    .order("sort_order");
+  if (error || !data) return [];
+  return data as EquipmentItem[];
+}
+
+export async function createEquipmentItem(
+  supabase: Supabase,
+  orgId: string,
+  name: string,
+  sizeMode: EquipmentSizeMode,
+  hasNumber: boolean
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase.from("equipment_items").insert({
+    organization_id: orgId,
+    name: name.trim(),
+    size_mode: sizeMode,
+    has_number: hasNumber,
+  });
+  return error ? { error: error.message } : { ok: true };
+}
+
+export async function updateEquipmentItem(
+  supabase: Supabase,
+  orgId: string,
+  itemId: string,
+  input: {
+    name: string;
+    sizeMode: EquipmentSizeMode;
+    hasNumber: boolean;
+  }
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("equipment_items")
+    .update({
+      name: input.name.trim(),
+      size_mode: input.sizeMode,
+      has_number: input.hasNumber,
+    })
+    .eq("id", itemId)
+    .eq("organization_id", orgId);
+  return error ? { error: error.message } : { ok: true };
+}
+
+/**
+ * Delete a catalog item. Refuses when the item has player assignments: the
+ * FK cascade would silently remove real issue records, so the operator must
+ * clean those up explicitly (or keep the item and disable it in settings).
+ */
+export async function deleteEquipmentItem(
+  supabase: Supabase,
+  orgId: string,
+  itemId: string
+): Promise<{ ok: true } | { error: string }> {
+  const { count, error: countError } = await supabase
+    .from("athlete_item_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId)
+    .eq("item_id", itemId);
+  if (countError) return { error: countError.message };
+  if ((count ?? 0) > 0) {
+    return {
+      error: "Artikal ne može biti obrisan jer postoje zaduženja igrača.",
+    };
+  }
+  const { error } = await supabase
+    .from("equipment_items")
+    .delete()
+    .eq("organization_id", orgId)
+    .eq("id", itemId);
+  return error ? { error: error.message } : { ok: true };
+}
+
+export async function listAthleteItemAssignments(
+  supabase: Supabase,
+  orgId: string,
+  athleteId?: string
+): Promise<AthleteItemAssignment[]> {
+  let query = supabase
+    .from("athlete_item_assignments")
+    .select("*")
+    .eq("organization_id", orgId);
+  if (athleteId) query = query.eq("athlete_id", athleteId);
+  const { data, error } = await query;
+  if (error || !data) return [];
+  return data as AthleteItemAssignment[];
+}
+
+/** Save the player's six clothing-piece sizes in one write. */
+export async function savePlayerSizes(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string,
+  sizes: Record<string, string | null>
+): Promise<{ ok: true } | { error: string }> {
+  // Every submitted piece is written, including explicit nulls: clearing a
+  // size on the profile must clear the stored value, not keep the old one.
+  const rows = Object.entries(sizes).map(([typeId, size]) => ({
+    organization_id: orgId,
+    athlete_id: athleteId,
+    equipment_type_id: typeId,
+    size_value: size?.trim() || null,
+    size_value_upper: null,
+  }));
+  if (rows.length === 0) return { ok: true };
+  const { error } = await supabase
+    .from("athlete_equipment")
+    .upsert(rows, { onConflict: "athlete_id,equipment_type_id" });
+  return error ? { error: error.message } : { ok: true };
+}
+
+/**
+ * Whether the catalog article supports an equipment number (has_number). The
+ * server decides this itself — never trust the client — so a submitted number
+ * is stored only for articles that genuinely support one.
+ */
+export async function itemUsesNumber(
+  supabase: Supabase,
+  orgId: string,
+  itemId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("equipment_items")
+    .select("has_number")
+    .eq("organization_id", orgId)
+    .eq("id", itemId)
+    .maybeSingle();
+  return Boolean(data?.has_number);
+}
+
+export async function issueItemToAthlete(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string,
+  itemId: string,
+  sizeTop: string | null,
+  sizeBottom: string | null,
+  note?: string | null,
+  number?: string | null
+): Promise<{ ok: true } | { error: string }> {
+  const [athleteRes, itemRes] = await Promise.all([
+    supabase
+      .from("athletes")
+      .select("id")
+      .eq("id", athleteId)
+      .eq("organization_id", orgId)
+      .maybeSingle(),
+    supabase
+      .from("equipment_items")
+      .select("id")
+      .eq("id", itemId)
+      .eq("organization_id", orgId)
+      .maybeSingle(),
+  ]);
+  if (!athleteRes.data || !itemRes.data) {
+    return { error: "Igrac ili artikal nije pronaden u organizaciji" };
+  }
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("athlete_item_assignments")
+    .upsert(
+      {
+        organization_id: orgId,
+        athlete_id: athleteId,
+        item_id: itemId,
+        state: "issued",
+        size_top: sizeTop?.trim() || null,
+        size_bottom: sizeBottom?.trim() || null,
+        note: note?.trim() || null,
+        number: number?.trim() || null,
+        issued_at: now,
+        returned_at: null,
+      },
+      { onConflict: "athlete_id,item_id" }
+    );
+  return error ? { error: error.message } : { ok: true };
+}
+
+const itemTransition: Record<EquipmentItemState, EquipmentItemState[]> = {
+  missing: ["missing", "issued"],
+  issued: ["issued", "returned", "lost", "damaged"],
+  returned: ["returned", "issued"],
+  lost: ["lost", "issued"],
+  damaged: ["damaged", "issued"],
+};
+
+export async function transitionItemAssignment(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string,
+  itemId: string,
+  state: EquipmentItemState,
+  note?: string | null
+): Promise<{ ok: true } | { error: string }> {
+  const { data: existing, error: readError } = await supabase
+    .from("athlete_item_assignments")
+    .select("*")
+    .eq("organization_id", orgId)
+    .eq("athlete_id", athleteId)
+    .eq("item_id", itemId)
+    .maybeSingle();
+  if (readError) return { error: readError.message };
+  const current = existing?.state ?? "missing";
+  if (!itemTransition[current].includes(state)) {
+    return { error: `Invalid equipment transition: ${current} -> ${state}` };
+  }
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("athlete_item_assignments")
+    .upsert(
+      {
+        organization_id: orgId,
+        athlete_id: athleteId,
+        item_id: itemId,
+        state,
+        issued_at: state === "issued" ? now : existing?.issued_at ?? null,
+        returned_at:
+          state === "returned" ? now : state === "issued" ? null : existing?.returned_at ?? null,
+        note: note?.trim() || existing?.note || null,
+      },
+      { onConflict: "athlete_id,item_id" }
+    );
+  return error ? { error: error.message } : { ok: true };
+}
+
+export async function deleteItemAssignment(
+  supabase: Supabase,
+  orgId: string,
+  athleteId: string,
+  itemId: string
+): Promise<{ ok: true } | { error: string }> {
+  const { error } = await supabase
+    .from("athlete_item_assignments")
+    .delete()
+    .eq("organization_id", orgId)
+    .eq("athlete_id", athleteId)
+    .eq("item_id", itemId);
+  return error ? { error: error.message } : { ok: true };
+}
+
+export interface EquipmentPlayerRow {
+  athlete_id: string;
+  first_name: string;
+  last_name: string;
+  club_athlete_number: number;
+  jersey_number: number | null;
+  jersey_name: string | null;
+  assignments: Array<{ item: EquipmentItem; assignment: AthleteItemAssignment | null }>;
+  issuedCount: number;
+  missingCount: number;
+  lostDamagedCount: number;
+}
+
+/**
+ * Team-filtered player equipment list (scalable alternative to the old matrix).
+ * Rows = active-season members of the selected team, each with every catalog
+ * item + its assignment state.
+ */
+export async function getPlayerEquipmentByTeam(
+  supabase: Supabase,
+  orgId: string,
+  teamId: string | undefined,
+  seasonId: string
+): Promise<EquipmentPlayerRow[]> {
+  const [items, assignmentsRes, membershipsRes, athletesRes] = await Promise.all([
+    listEquipmentItems(supabase, orgId),
+    supabase
+      .from("athlete_item_assignments")
+      .select("*")
+      .eq("organization_id", orgId),
+    supabase
+      .from("seasonal_memberships")
+      .select("athlete_id, team_id, jersey_number, jersey_name")
+      .eq("organization_id", orgId)
+      .eq("season_id", seasonId)
+      .eq("status", "active"),
+    supabase
+      .from("athletes")
+      .select("id, first_name, last_name, club_athlete_number")
+      .eq("organization_id", orgId)
+      .order("last_name")
+      .order("first_name"),
+  ]);
+
+  const assignments = (assignmentsRes.data ?? []) as AthleteItemAssignment[];
+  const memberships = (membershipsRes.data ?? []) as Array<{
+    athlete_id: string;
+    team_id: string;
+    jersey_number: number | null;
+    jersey_name: string | null;
+  }>;
+  const athletes = (athletesRes.data ?? []) as Array<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    club_athlete_number: number;
+  }>;
+
+  const memberIds = new Set(
+    (teamId
+      ? memberships.filter((m) => m.team_id === teamId)
+      : memberships
+    ).map((m) => m.athlete_id)
+  );
+  const membershipByAthlete = new Map(memberships.map((m) => [m.athlete_id, m]));
+const assignmentByKey = new Map(
+    assignments.map((a) => [`${a.athlete_id}:${a.item_id}`, a])
+  );
+
+  return athletes
+    .filter((athlete) => memberIds.has(athlete.id))
+    .map((athlete) => {
+      const membership = membershipByAthlete.get(athlete.id);
+      const rowAssignments = items.map((item) => ({
+        item,
+        assignment: assignmentByKey.get(`${athlete.id}:${item.id}`) ?? null,
+      }));
+      const issuedCount = rowAssignments.filter(
+        (a) => a.assignment?.state === "issued"
+      ).length;
+      const missingCount = rowAssignments.filter(
+        (a) => !a.assignment || a.assignment.state === "missing" || a.assignment.state === "returned"
+      ).length;
+      const lostDamagedCount = rowAssignments.filter(
+        (a) => a.assignment?.state === "lost" || a.assignment?.state === "damaged"
+      ).length;
+      return {
+        athlete_id: athlete.id,
+        first_name: athlete.first_name,
+        last_name: athlete.last_name,
+        club_athlete_number: athlete.club_athlete_number,
+        jersey_number: membership?.jersey_number ?? null,
+        jersey_name: membership?.jersey_name ?? null,
+        assignments: rowAssignments,
+        issuedCount,
+        missingCount,
+        lostDamagedCount,
+      };
+    });
 }

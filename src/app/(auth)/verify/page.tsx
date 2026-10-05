@@ -10,10 +10,13 @@ export default function VerifyPage() {
   useEffect(() => {
     const supabase = createBrowserClient();
 
-    // Exchange the auth code from the URL for a session
+    // Exchange the auth code from the URL for a session. /sr is safe for both
+    // flows: an invited user already has organization claims and lands in the
+    // club; a fresh signup without claims is redirected to onboarding by the
+    // middleware.
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
-        router.push("/sr/onboarding");
+        router.push("/sr");
       }
     });
   }, [router]);

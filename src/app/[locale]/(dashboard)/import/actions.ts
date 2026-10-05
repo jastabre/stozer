@@ -2,6 +2,11 @@
 
 import { z } from "zod";
 import { createAthlete, countAthletes, getActiveSeason, listTeams } from "@/lib/club-data";
+import {
+  isJerseyNumberUniqueViolation,
+  jerseyNumberTaken,
+  jerseyNumberTakenMessage,
+} from "@/lib/jersey-number";
 import { checkEntitlement } from "@/lib/entitlements";
 import { hasPermission, requireOrganization } from "@/lib/organization";
 import { createServerClient } from "@/lib/supabase/server";
@@ -99,7 +104,7 @@ function normalizeSourceRow(source: Record<string, string>): Record<string, stri
   if (normalized.club_athlete_number) {
     normalized.club_athlete_number = normalized.club_athlete_number
       .trim()
-      .replace(/^C/i, "");
+      .replace(/^[CS]/i, "");
   }
   return normalized;
 }
@@ -239,7 +244,12 @@ async function updateMembership(
     },
     { onConflict: "season_id,athlete_id" }
   );
-  return error?.message ?? null;
+  if (error) {
+    return isJerseyNumberUniqueViolation(error)
+      ? jerseyNumberTakenMessage(row.jersey_number ?? 0, "en")
+      : error.message;
+  }
+  return null;
 }
 
 function normalizedName(value: string): string {
@@ -360,6 +370,23 @@ export async function importBatchAction(
             errorRows += 1;
             continue;
           }
+          if (team?.id && activeSeason?.id && row.jersey_number != null) {
+            const taken = await jerseyNumberTaken(supabase, {
+              organizationId: org.organizationId,
+              seasonId: activeSeason.id,
+              teamId: team.id,
+              jerseyNumber: row.jersey_number,
+              excludeAthleteId: duplicate.id,
+            });
+            if (taken) {
+              rowErrors.push({
+                row: index + 1,
+                errors: [jerseyNumberTakenMessage(row.jersey_number, "en")],
+              });
+              errorRows += 1;
+              continue;
+            }
+          }
           const membershipError = await updateMembership(
             supabase, org.organizationId, duplicate.id, row, team?.id ?? null, activeSeason?.id ?? null
           );
@@ -377,6 +404,22 @@ export async function importBatchAction(
         rowErrors.push({ row: index + 1, errors: ["Player limit reached for this plan"] });
         errorRows += 1;
         continue;
+      }
+      if (team?.id && activeSeason?.id && row.jersey_number != null) {
+        const taken = await jerseyNumberTaken(supabase, {
+          organizationId: org.organizationId,
+          seasonId: activeSeason.id,
+          teamId: team.id,
+          jerseyNumber: row.jersey_number,
+        });
+        if (taken) {
+          rowErrors.push({
+            row: index + 1,
+            errors: [jerseyNumberTakenMessage(row.jersey_number, "en")],
+          });
+          errorRows += 1;
+          continue;
+        }
       }
       const created = await createAthlete(supabase, org.organizationId, {
         first_name: row.first_name,

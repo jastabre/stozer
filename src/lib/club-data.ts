@@ -2,8 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { buildClubAthleteNumber } from "@/lib/athlete-id";
 import { deriveStatus, type StatusTone } from "@/lib/status";
+import { sortTeamsByCategory } from "@/lib/team-order";
+import {
+  isJerseyNumberUniqueViolation,
+  jerseyNumberTaken,
+  jerseyNumberTakenMessage,
+} from "@/lib/jersey-number";
 
-type Supabase = SupabaseClient<Database>;
+export type Supabase = SupabaseClient<Database>;
 
 export interface Season {
   id: string;
@@ -12,6 +18,7 @@ export interface Season {
   starts_on: string;
   ends_on: string | null;
   is_active: boolean;
+  competition_months?: number[] | null;
 }
 
 export interface Registration {
@@ -21,6 +28,7 @@ export interface Registration {
   season_id: string | null;
   federation: string | null;
   identifier: string | null;
+  note: string | null;
   status: string;
   valid_from: string;
   valid_until: string;
@@ -37,6 +45,8 @@ export interface MedicalExamination {
   athlete_id: string;
   examined_on: string;
   valid_until: string;
+  exam_type: string | null;
+  institution: string | null;
   note: string | null;
   document_id: string | null;
   created_at: string;
@@ -62,11 +72,6 @@ export interface ClubDocument {
   updated_at: string;
 }
 
-export interface DocumentOverview extends ClubDocument {
-  owner_name: string;
-  tone: DocumentTone;
-}
-
 export interface Contract {
   id: string;
   organization_id: string;
@@ -77,6 +82,10 @@ export interface Contract {
   valid_until: string | null;
   document_id: string | null;
   notes: string | null;
+  monthly_salary?: number | null;
+  currency?: string | null;
+  pay_schedule?: string | null;
+  custom_months?: number[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -107,39 +116,6 @@ export async function listDocuments(
   const { data, error } = await query;
   if (error) return [];
   return (data as unknown as ClubDocument[]) ?? [];
-}
-
-export async function listDocumentOverview(
-  supabase: Supabase,
-  orgId: string,
-  thresholdDays: number
-): Promise<DocumentOverview[]> {
-  const documents = await listDocuments(supabase, orgId);
-  const [athleteResult, staffResult] = await Promise.all([
-    supabase
-      .from("athletes")
-      .select("id, first_name, last_name")
-      .eq("organization_id", orgId),
-    supabase
-      .from("staff")
-      .select("id, first_name, last_name")
-      .eq("organization_id", orgId),
-  ]);
-  const names = new Map<string, string>();
-  for (const row of athleteResult.data ?? []) {
-    names.set(`athlete:${row.id}`, `${row.last_name} ${row.first_name}`);
-  }
-  for (const row of staffResult.data ?? []) {
-    names.set(`staff:${row.id}`, `${row.last_name} ${row.first_name}`);
-  }
-
-  return documents.map((document) => ({
-    ...document,
-    owner_name:
-      names.get(`${document.owner_type}:${document.owner_id}`) ??
-      "Nepoznat vlasnik",
-    tone: documentTone(document.expires_at, thresholdDays),
-  }));
 }
 
 export async function listContracts(
@@ -199,6 +175,7 @@ export interface TeamStatusOverviewRow {
   athleteId: string;
   first_name: string;
   last_name: string;
+  position: string | null;
   club_athlete_number: number;
   jersey_number: number | null;
   latestRegistrationValidUntil: string | null;
@@ -222,7 +199,7 @@ export async function listTeamStatusOverview(
   const { data: memberships, error: mError } = await supabase
     .from("seasonal_memberships")
     .select(
-      "athlete_id, jersey_number, athletes(id, organization_id, first_name, last_name, club_athlete_number)"
+      "athlete_id, jersey_number, athletes!seasonal_memberships_athlete_id_fkey(id, organization_id, first_name, last_name, position, club_athlete_number)"
     )
     .eq("organization_id", orgId)
     .eq("team_id", teamId)
@@ -238,6 +215,7 @@ export async function listTeamStatusOverview(
       organization_id: string;
       first_name: string;
       last_name: string;
+      position: string | null;
       club_athlete_number: number;
     }) ?? null;
     if (!athlete || athlete.organization_id !== orgId) continue;
@@ -264,6 +242,7 @@ export async function listTeamStatusOverview(
       athleteId: athlete.id,
       first_name: athlete.first_name,
       last_name: athlete.last_name,
+      position: athlete.position,
       club_athlete_number: athlete.club_athlete_number,
       jersey_number: m.jersey_number,
       latestRegistrationValidUntil: regs?.[0]?.valid_until ?? null,
@@ -288,7 +267,7 @@ export async function listRegistrations(
   const { data, error } = await supabase
     .from("registrations")
     .select(
-      "id, organization_id, athlete_id, season_id, federation, identifier, status, valid_from, valid_until, document_id, created_at, seasons(name)"
+      "id, organization_id, athlete_id, season_id, federation, identifier, note, status, valid_from, valid_until, document_id, created_at, seasons!registrations_season_id_fkey(name)"
     )
     .eq("organization_id", orgId)
     .eq("athlete_id", athleteId)
@@ -303,6 +282,7 @@ export async function listRegistrations(
     season_id: row.season_id,
     federation: row.federation,
     identifier: row.identifier,
+    note: row.note,
     status: row.status,
     valid_from: row.valid_from,
     valid_until: row.valid_until,
@@ -438,25 +418,137 @@ export async function listTeams(
   supabase: Supabase,
   orgId: string
 ): Promise<(Team & { athlete_count: number })[]> {
-  const { data, error } = await supabase
-    .from("teams")
-    .select("*, seasonal_memberships(count)")
-    .eq("organization_id", orgId)
-    .order("name");
+  const [active, result] = await Promise.all([
+    getActiveSeason(supabase, orgId),
+    supabase
+      .from("teams")
+      .select("*")
+      .eq("organization_id", orgId)
+      .order("name"),
+  ]);
 
-  if (error) return [];
+  if (result.error) return [];
 
-  return (data ?? []).map((row) => {
-    const memberships = row.seasonal_memberships as unknown as
-      | { count: number }[]
-      | null;
-    return {
+  // "Igrača" is the roster size for the ACTIVE season only. Historical
+  // memberships are never summed here; with no active season the count is 0.
+  const counts = new Map<string, number>();
+  if (active) {
+    const { data: memberships } = await supabase
+      .from("seasonal_memberships")
+      .select("team_id")
+      .eq("organization_id", orgId)
+      .eq("season_id", active.id);
+    for (const m of memberships ?? []) {
+      counts.set(m.team_id, (counts.get(m.team_id) ?? 0) + 1);
+    }
+  }
+
+  // Business display order: first team first, then youth / reserve / other,
+  // each group alphabetical by name (see sortTeamsByCategory).
+  return sortTeamsByCategory(
+    (result.data ?? []).map((row) => ({
       id: row.id,
       organization_id: row.organization_id,
       name: row.name,
       category: row.category,
       sport: row.sport,
-      athlete_count: memberships?.[0]?.count ?? 0,
+      athlete_count: counts.get(row.id) ?? 0,
+    }))
+  );
+}
+
+/**
+ * Count the members of one team for a given season. Used by the team screen
+ * header (and by the payments tab) so the roster size is always the active
+ * season's membership, never the all-time history.
+ */
+export async function countTeamMembers(
+  supabase: Supabase,
+  orgId: string,
+  teamId: string,
+  seasonId: string
+): Promise<number> {
+  const { count } = await supabase
+    .from("seasonal_memberships")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId)
+    .eq("team_id", teamId)
+    .eq("season_id", seasonId);
+  return count ?? 0;
+}
+
+/**
+ * Athlete ids that already hold a membership in the given season (any team).
+ * Used to compute who is still eligible to be added to a team — the "already in
+ * this season" check must look at the active season only, not at whether the
+ * athlete has any membership history.
+ */
+export async function listSeasonMemberAthleteIds(
+  supabase: Supabase,
+  orgId: string,
+  seasonId: string
+): Promise<string[]> {
+  const { data } = await supabase
+    .from("seasonal_memberships")
+    .select("athlete_id")
+    .eq("organization_id", orgId)
+    .eq("season_id", seasonId);
+  return (data ?? []).map((row) => row.athlete_id);
+}
+
+/**
+ * List ALL athletes in the organization, regardless of season or membership.
+ * Players are organization-level (D-01); team membership is seasonal. The
+ * current-season team/jersey is attached when an active season exists.
+ */
+export async function listAthletes(
+  supabase: Supabase,
+  orgId: string
+): Promise<AthleteMembership[]> {
+  const [active, result] = await Promise.all([
+    getActiveSeason(supabase, orgId),
+    supabase
+      .from("athletes")
+      .select(
+        "id, organization_id, first_name, last_name, birth_date, gender, nationality, position, photo_url, club_athlete_number, seasonal_memberships!seasonal_memberships_athlete_id_fkey(season_id, team_id, jersey_number, teams!seasonal_memberships_team_id_fkey(name))"
+      )
+      .eq("organization_id", orgId)
+      .order("last_name")
+      .order("first_name"),
+  ]);
+
+  if (result.error) return [];
+
+  const activeId = active?.id ?? null;
+  return (result.data ?? []).map((row) => {
+    const memberships = row.seasonal_memberships as unknown as Array<{
+      season_id: string;
+      team_id: string;
+      jersey_number: number | null;
+      teams: { name: string } | null;
+    }>;
+    const current =
+      memberships?.find((m) => m.season_id === activeId) ??
+      memberships?.[0] ??
+      null;
+    return {
+      id: row.id,
+      organization_id: row.organization_id,
+      first_name: row.first_name,
+      last_name: row.last_name,
+      birth_date: row.birth_date,
+      gender: row.gender,
+      nationality: row.nationality,
+      position: row.position,
+      photo_url: row.photo_url,
+      club_athlete_number: row.club_athlete_number,
+      membership: current
+        ? {
+            team_id: current.team_id,
+            jersey_number: current.jersey_number,
+            team_name: current.teams?.name ?? null,
+          }
+        : null,
     };
   });
 }
@@ -474,7 +566,7 @@ export async function listAthletesWithCurrentMembership(
   const { data, error } = await supabase
     .from("athletes")
     .select(
-      "id, organization_id, first_name, last_name, birth_date, gender, nationality, position, photo_url, club_athlete_number, seasonal_memberships!inner(team_id, jersey_number, teams(name))"
+      "id, organization_id, first_name, last_name, birth_date, gender, nationality, position, photo_url, club_athlete_number, seasonal_memberships!seasonal_memberships_athlete_id_fkey!inner(team_id, jersey_number, teams!seasonal_memberships_team_id_fkey(name))"
     )
     .eq("organization_id", orgId)
     .eq("seasonal_memberships.season_id", seasonId)
@@ -526,6 +618,7 @@ export interface AthleteDetail {
   position: string | null;
   photo_url: string | null;
   federation_id: string | null;
+  preferred_jersey_number: number | null;
   club_athlete_number: number;
   memberships: {
     seasonId: string;
@@ -534,6 +627,7 @@ export interface AthleteDetail {
     teamId: string;
     teamName: string;
     jerseyNumber: number | null;
+    jerseyName: string | null;
     status: string;
   }[];
 }
@@ -550,7 +644,7 @@ export async function getAthleteWithMemberships(
   const { data, error } = await supabase
     .from("athletes")
     .select(
-      "id, organization_id, first_name, last_name, birth_date, gender, nationality, position, photo_url, federation_id, club_athlete_number, seasonal_memberships(season_id, team_id, jersey_number, status, seasons(name, is_active), teams(name))"
+      "id, organization_id, first_name, last_name, birth_date, gender, nationality, position, photo_url, federation_id, preferred_jersey_number, club_athlete_number, seasonal_memberships!seasonal_memberships_athlete_id_fkey(season_id, team_id, jersey_number, jersey_name, status, seasons!seasonal_memberships_season_id_fkey(name, is_active), teams!seasonal_memberships_team_id_fkey(name))"
     )
     .eq("id", athleteId)
     .eq("organization_id", orgId)
@@ -562,6 +656,7 @@ export async function getAthleteWithMemberships(
     season_id: string;
     team_id: string;
     jersey_number: number | null;
+    jersey_name: string | null;
     status: string;
     seasons: { name: string; is_active: boolean } | null;
     teams: { name: string } | null;
@@ -578,6 +673,7 @@ export async function getAthleteWithMemberships(
     position: data.position,
     photo_url: data.photo_url,
     federation_id: data.federation_id,
+    preferred_jersey_number: data.preferred_jersey_number ?? null,
     club_athlete_number: data.club_athlete_number,
     memberships: memberships.map((m) => ({
       seasonId: m.season_id,
@@ -586,6 +682,7 @@ export async function getAthleteWithMemberships(
       teamId: m.team_id,
       teamName: m.teams?.name ?? "",
       jerseyNumber: m.jersey_number,
+      jerseyName: m.jersey_name ?? null,
       status: m.status,
     })),
   };
@@ -635,6 +732,22 @@ export async function createAthlete(
       .maybeSingle();
     if (teamError || !team) {
       return { error: "Tim nije pronađen u organizaciji" };
+    }
+  }
+
+  // WR-06: a jersey number must be unique within the team for the season.
+  // Check BEFORE claiming a counter value so a conflict neither burns a number
+  // nor leaves an orphan athlete behind. The DB index (00040) is the race-proof
+  // backstop; this is only the friendly pre-check.
+  if (input.team_id && input.seasonId && input.jersey_number != null) {
+    const taken = await jerseyNumberTaken(supabase, {
+      organizationId: orgId,
+      seasonId: input.seasonId,
+      teamId: input.team_id,
+      jerseyNumber: input.jersey_number,
+    });
+    if (taken) {
+      return { error: jerseyNumberTakenMessage(input.jersey_number) };
     }
   }
 
@@ -698,7 +811,11 @@ export async function createAthlete(
       // by removing it so a retry cannot mint a second athlete (and burn
       // another counter value) for a membership that never materialized.
       await supabase.from("athletes").delete().eq("id", athlete.id);
-      return { error: membershipError.message };
+      return {
+        error: isJerseyNumberUniqueViolation(membershipError)
+          ? jerseyNumberTakenMessage(input.jersey_number ?? 0)
+          : membershipError.message,
+      };
     }
   }
 

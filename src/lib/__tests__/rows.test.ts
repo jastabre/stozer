@@ -49,6 +49,28 @@ describe("import row model (REG-08, D-14/D-15)", () => {
       ).toBe("athlete-1");
     });
 
+    it("matches a Club Athlete ID written with the new S prefix", () => {
+      expect(
+        findDuplicate(
+          // @ts-expect-error numberKey also accepts a prefixed string form
+          { ...knownRow, club_athlete_number: "S0042" },
+          new Map([["42", existing]]),
+          new Map()
+        )?.id
+      ).toBe("athlete-1");
+    });
+
+    it("still matches a legacy C-prefixed Club Athlete ID", () => {
+      expect(
+        findDuplicate(
+          // @ts-expect-error numberKey also accepts a prefixed string form
+          { ...knownRow, club_athlete_number: "C0042" },
+          new Map([["42", existing]]),
+          new Map()
+        )?.id
+      ).toBe("athlete-1");
+    });
+
     it("falls back to first|last|DOB when the club number is absent", () => {
       expect(
         findDuplicate(

@@ -1,229 +1,627 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
+﻿import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { Settings } from "lucide-react";
 import { EmptyState } from "@/components/layout/EmptyState";
+import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
+import { MutationForm } from "@/components/ui/MutationForm";
 import { hasPermission, requireOrganization } from "@/lib/organization";
 import { createServerClient } from "@/lib/supabase/server";
 import { getActiveSeason, listTeams } from "@/lib/club-data";
 import {
-  getPlayerEquipmentOverview,
+  getPlayerEquipmentByTeam,
+  listEquipmentItems,
   listEquipmentRequests,
   listEquipmentTypes,
   listTeamEquipment,
   listTeamEquipmentRequirements,
-  type EquipmentFilter,
-  type EquipmentType,
-  SIZE_PRESETS,
+  summarizePlayerEquipment,
+  type AthleteItemAssignment,
 } from "@/lib/equipment";
 import {
   createEquipmentRequestAction,
-  createEquipmentTypeAction,
   createTeamEquipmentAction,
   decideEquipmentRequestAction,
+  deleteItemAssignmentAction,
   deleteTeamEquipmentAction,
-  saveTeamRequirementsAction,
-  setAthleteSizeAction,
-  toggleEquipmentTypeAction,
-  transitionAthleteItemAction,
+  issueItemAction,
+  transitionItemAction,
   updateTeamEquipmentAction,
 } from "./actions";
+import { PlayerEquipmentTable } from "@/components/equipment/PlayerEquipmentTable";
+import { TrainingEquipmentDialog } from "@/components/equipment/TrainingEquipmentDialog";
+import { ExportButton } from "@/components/equipment/ExportButton";
+import { TeamFilter } from "@/components/teams/TeamFilter";
+import { SectionTabs } from "@/components/ui/SectionTabs";
+import { PageHeader } from "@/components/ui/PageHeader";
 
-const filters: EquipmentFilter[] = ["complete", "missing", "not_issued", "lost_damaged"];
-const states = ["missing", "issued", "returned", "lost", "damaged"] as const;
 const inputClass = "rounded-lg border border-border bg-background px-3 py-2 text-sm";
 
-function sizeLabel(item: { size_value: string | null; size_value_upper: string | null }) {
-  if (item.size_value && item.size_value_upper) return `${item.size_value} / ${item.size_value_upper}`;
-  return item.size_value ?? "—";
-}
-
-function tabHref(tab: string, teamId?: string, filter?: string) {
+function tabHref(tab: string, teamId?: string) {
   const params = new URLSearchParams({ tab });
   if (teamId) params.set("team", teamId);
-  if (filter) params.set("filter", filter);
-  return `/equipment?${params.toString()}`;
+  return params.toString();
 }
 
-function SizeSelect({
-  name,
-  value,
+function Kpi({
   label,
+  value,
+  tone,
 }: {
-  name: string;
-  value: string | null;
   label: string;
+  value: number | string;
+  tone?: string;
 }) {
   return (
-    <label className="grid gap-1 text-xs text-muted-foreground">
-      {label}
-      <select name={`${name}_preset`} defaultValue={value && [...SIZE_PRESETS.youth, ...SIZE_PRESETS.adult].includes(value as never) ? value : ""} className={inputClass}>
-        <option value="">Custom / none</option>
-        <optgroup label="Youth">{SIZE_PRESETS.youth.map((preset) => <option key={preset} value={preset}>{preset}</option>)}</optgroup>
-        <optgroup label="Adult">{SIZE_PRESETS.adult.map((preset) => <option key={preset} value={preset}>{preset}</option>)}</optgroup>
-      </select>
-      <input name={`${name}_custom`} defaultValue={value && ![...SIZE_PRESETS.youth, ...SIZE_PRESETS.adult].includes(value as never) ? value : ""} className={inputClass} placeholder="Custom value" />
-    </label>
-  );
-}
-
-function EquipmentTypeSettings({
-  types,
-  teams,
-  selectedTeamId,
-  requiredTypeIds,
-  t,
-}: {
-  types: EquipmentType[];
-  teams: Array<{ id: string; name: string }>;
-  selectedTeamId?: string;
-  requiredTypeIds: Set<string>;
-  t: (key: string) => string;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">{t("typesTitle")}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t("typesDescription")}</p>
-      </div>
-      <div className="grid gap-2">
-        {types.map((type) => (
-          <div key={type.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm">
-            <div>
-              <span className="font-medium">{type.name}</span>
-              <span className="ml-2 text-xs text-muted-foreground">{t(`sizeModels.${type.size_model}`)} · {type.is_club_property ? t("clubProperty") : t("athleteKeeps")}</span>
-            </div>
-            <form action={toggleEquipmentTypeAction}>
-              <input type="hidden" name="equipment_type_id" value={type.id} />
-              <input type="hidden" name="enabled" value={String(!type.enabled)} />
-              <button type="submit" className="rounded-lg border border-border px-3 py-1.5 text-xs hover:border-primary">
-                {type.enabled ? t("disable") : t("enable")}
-              </button>
-            </form>
-          </div>
-        ))}
-      </div>
-      <form action={createEquipmentTypeAction} className="grid gap-2 rounded-lg bg-muted/40 p-3 sm:grid-cols-4">
-        <input name="name" required maxLength={80} placeholder={t("typeName")} className={inputClass} />
-        <select name="size_model" defaultValue="single" className={inputClass} aria-label={t("sizeModel")}>
-          <option value="single">{t("sizeModels.single")}</option>
-          <option value="upper_lower">{t("sizeModels.upper_lower")}</option>
-        </select>
-        <select name="is_club_property" defaultValue="true" className={inputClass} aria-label={t("ownership")}>
-          <option value="true">{t("clubProperty")}</option>
-          <option value="false">{t("athleteKeeps")}</option>
-        </select>
-        <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">{t("addType")}</button>
-      </form>
-      {teams.length > 0 && selectedTeamId && (
-        <form action={saveTeamRequirementsAction} className="rounded-lg border border-border p-4">
-          <h3 className="font-medium">{t("requirementsTitle")}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">{t("requirementsDescription")}</p>
-          <select name="team_id" defaultValue={selectedTeamId} className={`${inputClass} mt-3 w-full`} aria-label={t("team")}>
-            {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-          </select>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {types.filter((type) => type.enabled).map((type) => (
-              <label key={type.id} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="equipment_type_id" value={type.id} defaultChecked={requiredTypeIds.has(type.id)} />
-                {type.name}
-              </label>
-            ))}
-          </div>
-          <button type="submit" className="mt-3 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">{t("saveRequirements")}</button>
-        </form>
-      )}
+    <div className="flex items-baseline gap-2 rounded-lg border border-border bg-card px-3 py-1.5">
+      <span className={`text-lg font-semibold tabular-nums ${tone ?? "text-foreground"}`}>
+        {value}
+      </span>
+      <span className="text-xs text-muted-foreground">{label}</span>
     </div>
   );
 }
 
 export default async function EquipmentPage({
+  params,
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string; team?: string; filter?: string }>;
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ tab?: string; team?: string }>;
 }) {
+  const { locale } = await params;
+  const sp = await searchParams;
+  const tab = sp.tab ?? "players";
   const org = await requireOrganization();
-  if (!(await hasPermission("equipment.view"))) notFound();
   const supabase = await createServerClient();
-  const query = (await searchParams) ?? {};
-  const tab = query.tab === "team" || query.tab === "requests" ? query.tab : "players";
-  const filter = filters.includes(query.filter as EquipmentFilter) ? query.filter as EquipmentFilter : undefined;
-  const [activeSeason, teams, allTypes, requests, teamEquipment, t] = await Promise.all([
-    getActiveSeason(supabase, org.organizationId),
+  const t = await getTranslations("equipment");
+  const tf = await getTranslations("feedback");
+
+  const [canReport, canManage, teams, activeSeason] = await Promise.all([
+    hasPermission("equipment.report"),
+    hasPermission("equipment.manage"),
     listTeams(supabase, org.organizationId),
-    listEquipmentTypes(supabase, org.organizationId, true),
-    listEquipmentRequests(supabase, org.organizationId),
-    listTeamEquipment(supabase, org.organizationId),
-    getTranslations("equipment"),
+    getActiveSeason(supabase, org.organizationId),
   ]);
-  const selectedTeamId = query.team && teams.some((team) => team.id === query.team) ? query.team : teams[0]?.id;
-  const [overview, requirements] = activeSeason
-    ? await Promise.all([
-        getPlayerEquipmentOverview(supabase, org.organizationId, selectedTeamId, activeSeason.id, filter),
-        selectedTeamId ? listTeamEquipmentRequirements(supabase, org.organizationId, selectedTeamId) : Promise.resolve([]),
-      ])
-    : [{ types: [], rows: [], counts: { complete: 0, missing: 0, not_issued: 0, lost_damaged: 0 } }, []];
-  const [canReport, canManage] = await Promise.all([hasPermission("equipment.report"), hasPermission("equipment.manage")]);
-  const staff = await supabase.from("staff").select("id, first_name, last_name").eq("organization_id", org.organizationId).order("last_name");
-  const requiredTypeIds = new Set(requirements.map((requirement) => requirement.equipment_type_id));
-  const tString = (key: string) => t(key as never);
+
+  // Players tab: a concrete team is always selected (Prvi tim leads).
+  const selectedTeamId =
+    sp.team && teams.some((team) => team.id === sp.team)
+      ? sp.team
+      : teams.find((team) => team.category === "first_team")?.id ?? teams[0]?.id;
+  // Training tab: "all teams" is a valid default, so only a real param filters.
+  const trainingTeamId =
+    sp.team && teams.some((team) => team.id === sp.team) ? sp.team : null;
+
+  const [playerRows, items, pieceTypes, teamEquipment, requests, requirements, staff] =
+    await Promise.all([
+      activeSeason && selectedTeamId
+        ? getPlayerEquipmentByTeam(supabase, org.organizationId, selectedTeamId, activeSeason.id)
+        : Promise.resolve([]),
+      listEquipmentItems(supabase, org.organizationId),
+      listEquipmentTypes(supabase, org.organizationId),
+      listTeamEquipment(supabase, org.organizationId, activeSeason?.id),
+      listEquipmentRequests(supabase, org.organizationId),
+      selectedTeamId
+        ? listTeamEquipmentRequirements(supabase, org.organizationId, selectedTeamId)
+        : Promise.resolve([]),
+      supabase
+        .from("staff")
+        .select("id, first_name, last_name")
+        .eq("organization_id", org.organizationId)
+        .order("last_name"),
+    ]);
+
+  const requiredItemIds = new Set(requirements.map((row) => row.item_id));
+  const hasRequirements = requiredItemIds.size > 0;
+
+  // Player size profile (six clothing pieces) for the selected team, used for
+  // the sizes column and to prefill the issue form.
+  const pieceTypeIds = pieceTypes.map((type) => type.id);
+  const { data: pieceSizeRows } =
+    activeSeason && selectedTeamId && pieceTypeIds.length
+      ? await supabase
+          .from("athlete_equipment")
+          .select("athlete_id, equipment_type_id, size_value")
+          .eq("organization_id", org.organizationId)
+          .in("equipment_type_id", pieceTypeIds)
+      : { data: [] };
+  const sizeByAthletePiece = new Map(
+    (pieceSizeRows ?? []).map((row) => [
+      `${row.athlete_id}:${row.equipment_type_id}`,
+      row.size_value,
+    ])
+  );
+  const pieceByName = new Map(pieceTypes.map((type) => [type.name, type]));
+  const sizeOfPiece = (athleteId: string, name: string): string | null => {
+    const type = pieceByName.get(name);
+    return type
+      ? sizeByAthletePiece.get(`${athleteId}:${type.id}`) ?? null
+      : null;
+  };
+  const compactSizes = (athleteId: string): string => {
+    const parts: string[] = [];
+    const match = [
+      sizeOfPiece(athleteId, "Match Shirt"),
+      sizeOfPiece(athleteId, "Match Shorts"),
+    ].filter(Boolean);
+    if (match.length) parts.push(`${t("sizes.groupMatch")} ${match.join("/")}`);
+    const tracksuit = [
+      sizeOfPiece(athleteId, "Tracksuit Top"),
+      sizeOfPiece(athleteId, "Tracksuit Bottom"),
+    ].filter(Boolean);
+    if (tracksuit.length) {
+      parts.push(`${t("sizes.groupTracksuit")} ${tracksuit.join("/")}`);
+    }
+    const shirt = sizeOfPiece(athleteId, "Training Shirt");
+    if (shirt) parts.push(`${t("sizes.shirt")} ${shirt}`);
+    const shorts = sizeOfPiece(athleteId, "Training Shorts");
+    if (shorts) parts.push(`${t("sizes.shorts")} ${shorts}`);
+    return parts.join(" · ");
+  };
+
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  const tablePlayers = playerRows.map((player) => {
+    const assignments = player.assignments
+      .map((entry) => entry.assignment)
+      .filter((assignment): assignment is AthleteItemAssignment => assignment !== null);
+    const summary = summarizePlayerEquipment(assignments, requiredItemIds);
+    const missingLabels = summary.missingItemIds
+      .map((itemId) => itemById.get(itemId)?.name ?? "")
+      .filter(Boolean);
+    return {
+      athlete_id: player.athlete_id,
+      first_name: player.first_name,
+      last_name: player.last_name,
+      club_athlete_number: player.club_athlete_number,
+      jersey_number: player.jersey_number,
+      team_name:
+        teams.find((team) => team.id === selectedTeamId)?.name ?? null,
+      sizes: [
+        { label: `${t("sizes.groupMatch")} — ${t("topLabel")}`, value: sizeOfPiece(player.athlete_id, "Match Shirt") },
+        { label: `${t("sizes.groupMatch")} — ${t("bottomLabel")}`, value: sizeOfPiece(player.athlete_id, "Match Shorts") },
+        { label: `${t("sizes.groupTracksuit")} — ${t("topLabel")}`, value: sizeOfPiece(player.athlete_id, "Tracksuit Top") },
+        { label: `${t("sizes.groupTracksuit")} — ${t("bottomLabel")}`, value: sizeOfPiece(player.athlete_id, "Tracksuit Bottom") },
+        { label: t("typeNames.trainingShirt"), value: sizeOfPiece(player.athlete_id, "Training Shirt") },
+        { label: t("typeNames.trainingShorts"), value: sizeOfPiece(player.athlete_id, "Training Shorts") },
+      ],
+      sizesCompact: compactSizes(player.athlete_id),
+      assignments: assignments.map((assignment) => ({
+        item_id: assignment.item_id,
+        state: assignment.state,
+        size_top: assignment.size_top,
+        size_bottom: assignment.size_bottom,
+        number: assignment.number,
+        issued_at: assignment.issued_at,
+        note: assignment.note,
+      })),
+      summary: {
+        hasRequirements: summary.hasRequirements,
+        missingLabels,
+        issuedCount: summary.issuedCount,
+        missingCount: summary.missingCount,
+        lostDamagedCount: summary.lostDamagedCount,
+        complete: summary.complete,
+      },
+    };
+  });
+
+  const completeCount = tablePlayers.filter((player) => player.summary.complete).length;
+  const missingPlayersCount = tablePlayers.filter(
+    (player) => player.summary.hasRequirements && !player.summary.complete
+  ).length;
+
+  const visibleTeamEquipment = trainingTeamId
+    ? teamEquipment.filter((row) => row.team_id === trainingTeamId)
+    : teamEquipment;
+
+  const staffOptions = (staff.data ?? []).map((person) => ({
+    id: person.id,
+    name: `${person.last_name} ${person.first_name}`,
+  }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{t("eyebrow")}</p>
-          <h1 className="mt-1 text-2xl font-bold">{t("title")}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t("description")}</p>
+    <div className="space-y-4">
+      <PageHeader title={t("title")} description={t("description")} eyebrow={t("eyebrow")}>
+        <div className="flex flex-wrap items-center gap-2">
+          {tab === "players" && canReport && selectedTeamId && (
+            <ExportButton
+              href={`/${locale}/equipment/export?team_id=${encodeURIComponent(selectedTeamId)}`}
+              label={t("export")}
+              pendingLabel={t("exporting")}
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+            />
+          )}
+          {canManage && (
+            <Link
+              href={`/${locale}/equipment/settings`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+              {t("settingsButton")}
+            </Link>
+          )}
         </div>
-        {tab === "players" && <form action="/equipment/export" method="get" target="_blank" className="flex flex-wrap items-end gap-2 rounded-lg border border-border p-3"><input type="hidden" name="team_id" value={selectedTeamId ?? ""} /><fieldset className="flex max-w-xl flex-wrap gap-2"><legend className="sr-only">{t("exportTypes")}</legend>{overview.types.map((type) => <label key={type.id} className="flex items-center gap-1 text-xs"><input type="checkbox" name="types" value={type.id} defaultChecked />{type.name}</label>)}<label className="flex items-center gap-1 text-xs"><input type="checkbox" name="only_missing" value="true" />{t("onlyMissing")}</label></fieldset><button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">{t("export")}</button></form>}
-      </div>
+      </PageHeader>
 
-      <nav className="flex flex-wrap gap-2 border-b border-border pb-3" aria-label={t("tabsLabel")}>
-        <Link href={tabHref("players", selectedTeamId, filter)} className={`rounded-lg px-3 py-2 text-sm ${tab === "players" ? "bg-foreground text-background" : "border border-border"}`}>{t("tabs.players")}</Link>
-        <Link href={tabHref("team", selectedTeamId)} className={`rounded-lg px-3 py-2 text-sm ${tab === "team" ? "bg-foreground text-background" : "border border-border"}`}>{t("tabs.team")}</Link>
-        <Link href={tabHref("requests", selectedTeamId)} className={`rounded-lg px-3 py-2 text-sm ${tab === "requests" ? "bg-foreground text-background" : "border border-border"}`}>{t("tabs.requests")}</Link>
-      </nav>
+      <SectionTabs
+        label={t("tabsLabel")}
+        activeHref={`/${locale}/equipment?${tabHref(
+          tab,
+          tab === "team" ? trainingTeamId ?? undefined : selectedTeamId
+        )}`}
+        items={[
+          { href: `/${locale}/equipment?${tabHref("players", selectedTeamId)}`, label: t("tabs.players") },
+          { href: `/${locale}/equipment?${tabHref("team", trainingTeamId ?? undefined)}`, label: t("tabs.team") },
+          { href: `/${locale}/equipment?${tabHref("requests", selectedTeamId)}`, label: t("tabs.requests") },
+        ]}
+      />
 
       {tab === "players" && (
         <section className="space-y-4">
-          <form method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-border p-4">
-            <input type="hidden" name="tab" value="players" />
-            <label className="grid gap-1 text-xs text-muted-foreground">{t("team")}
-              <select name="team" defaultValue={selectedTeamId ?? ""} className={inputClass}>
-                {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-              </select>
-            </label>
-            <label className="grid gap-1 text-xs text-muted-foreground">{t("filter")}
-              <select name="filter" defaultValue={filter ?? ""} className={inputClass}>
-                <option value="">{t("filters.all")}</option>
-                {filters.map((item) => <option key={item} value={item}>{t(`filters.${item}`)}</option>)}
-              </select>
-            </label>
-            <button type="submit" className="rounded-lg border border-border px-3 py-2 text-sm">{t("apply")}</button>
-            <span className="text-xs text-muted-foreground">{activeSeason?.name ?? t("noActiveSeason")}</span>
-          </form>
-          <div className="grid gap-3 sm:grid-cols-4">
-            {filters.map((item) => <div key={item} className="rounded-xl border border-border p-4"><p className="text-xs text-muted-foreground">{t(`filters.${item}`)}</p><p className="mt-1 text-2xl font-semibold">{overview.counts[item]}</p></div>)}
-          </div>
-          {!activeSeason || overview.rows.length === 0 ? <EmptyState title={t("emptyPlayers")} description={t("emptyPlayersDescription")} /> : (
-            <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="min-w-[900px] w-full text-sm">
-                <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">{t("player")}</th><th className="px-4 py-3">{t("jersey")}</th>{overview.types.map((type) => <th key={type.id} className="px-4 py-3">{type.name}</th>)}<th className="px-4 py-3">{t("summary")}</th></tr></thead>
-                <tbody>{overview.rows.map((row) => <tr key={row.athlete_id} className="border-t border-border align-top">
-                  <td className="px-4 py-3 font-medium"><Link href={`/players/${row.athlete_id}/equipment`} className="hover:text-primary">{row.last_name} {row.first_name}</Link><div className="font-mono text-xs text-muted-foreground">C{String(row.club_athlete_number).padStart(4, "0")}</div></td>
-                  <td className="px-4 py-3">{row.jersey_number ?? "—"}</td>
-                  {row.items.map((item) => <td key={item.equipment_type_id} className="px-4 py-3"><div className="font-medium">{sizeLabel(item)}</div><span className="text-xs text-muted-foreground">{t(`states.${item.state}`)}</span>{canReport && <><form action={setAthleteSizeAction} className="mt-2 grid gap-1"><input type="hidden" name="athlete_id" value={row.athlete_id} /><input type="hidden" name="equipment_type_id" value={item.equipment_type_id} /><div className="grid gap-1 sm:grid-cols-2"><SizeSelect name="size_value" value={item.size_value} label="Size" />{item.equipment_type.size_model === "upper_lower" && <SizeSelect name="size_value_upper" value={item.size_value_upper} label="Lower" />}</div><button type="submit" className="rounded border border-border px-1.5 py-1 text-[10px] hover:border-primary">{t("save")}</button></form><div className="mt-2 flex flex-wrap gap-1">{(item.state === "issued" ? ["returned", "lost", "damaged"] : item.state === "lost" || item.state === "damaged" || item.state === "returned" ? ["issued"] : ["issued"]).map((next) => <form key={next} action={transitionAthleteItemAction}><input type="hidden" name="athlete_id" value={row.athlete_id} /><input type="hidden" name="equipment_type_id" value={item.equipment_type_id} /><input type="hidden" name="state" value={next} /><button type="submit" className="rounded border border-border px-1.5 py-1 text-[10px] hover:border-primary">{t(`actions.${next}`)}</button></form>)}</div></>}</td>)}
-                  <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{row.summary.complete && <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-800">{t("filters.complete")}</span>}{row.summary.missing && <span className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-800">{t("filters.missing")}</span>}{row.summary.lost_or_damaged && <span className="rounded-full bg-red-100 px-2 py-1 text-xs text-red-800">{t("filters.lost_damaged")}</span>}</div></td>
-                </tr>)}</tbody>
-              </table>
-            </div>
+          {teams.length > 0 && (
+            <TeamFilter
+              teams={teams.map((team) => ({ id: team.id, name: team.name }))}
+              selectedTeamId={selectedTeamId ?? null}
+              teamHref={(teamId) =>
+                `/${locale}/equipment?${tabHref("players", teamId)}`
+              }
+              ariaLabel={t("team")}
+              label={t("team")}
+              tone="soft"
+            />
+          )}
+
+          {!activeSeason ? (
+            <EmptyState title={t("noActiveSeason")} description={t("emptyPlayersDescription")} />
+          ) : playerRows.length === 0 ? (
+            <EmptyState title={t("emptyPlayers")} description={t("emptyPlayersDescription")} />
+          ) : (
+            <>
+              {!hasRequirements && (
+                <p className="rounded-xl border border-dashed border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                  {t("noRequirements")}
+                  {canManage && (
+                    <>
+                      {" "}
+                      <Link
+                        href={`/${locale}/equipment/settings?tab=requirements`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {t("settingsButton")}
+                      </Link>
+                    </>
+                  )}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <Kpi label={t("kpiPlayers")} value={tablePlayers.length} />
+                <Kpi
+                  label={t("kpiComplete")}
+                  value={hasRequirements ? completeCount : "—"}
+                  tone="text-success"
+                />
+                <Kpi
+                  label={t("kpiMissing")}
+                  value={hasRequirements ? missingPlayersCount : "—"}
+                  tone="text-destructive"
+                />
+              </div>
+
+              <PlayerEquipmentTable
+                players={tablePlayers}
+                items={items}
+                canReport={canReport}
+                canManage={canManage}
+                issueAction={issueItemAction}
+                transitionAction={transitionItemAction}
+                deleteAction={deleteItemAssignmentAction}
+              />
+            </>
           )}
         </section>
       )}
 
-      {tab === "team" && <section className="space-y-4"><div><h2 className="text-lg font-semibold">{t("teamTitle")}</h2><p className="mt-1 text-sm text-muted-foreground">{t("teamDescription")}</p></div>{canManage && <form action={createTeamEquipmentAction} className="grid gap-2 rounded-xl border border-border p-4 sm:grid-cols-6"><input type="hidden" name="season_id" value={activeSeason?.id ?? ""} /><input name="item_name" required placeholder={t("itemName")} className={`${inputClass} sm:col-span-2`} /><select name="team_id" className={inputClass}><option value="">{t("unassigned")}</option>{teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select><select name="responsible_staff_id" className={inputClass}><option value="">{t("noResponsible")}</option>{(staff.data ?? []).map((person) => <option key={person.id} value={person.id}>{person.last_name} {person.first_name}</option>)}</select><input name="quantity" type="number" min="0" defaultValue="1" className={inputClass} aria-label={t("quantity")} /><select name="state" defaultValue="issued" className={inputClass}>{states.map((state) => <option key={state} value={state}>{t(`states.${state}`)}</option>)}</select><button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground sm:col-span-6">{t("addItem")}</button></form>}{teamEquipment.length === 0 ? <EmptyState title={t("emptyTeam") } description={t("emptyTeamDescription")} /> : <div className="overflow-x-auto rounded-xl border border-border"><table className="min-w-[850px] w-full text-sm"><thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">{t("itemName")}</th><th className="px-4 py-3">{t("team")}</th><th className="px-4 py-3">{t("responsible")}</th><th className="px-4 py-3">{t("quantity")}</th><th className="px-4 py-3">{t("state")}</th><th className="px-4 py-3">{t("actionsLabel")}</th></tr></thead><tbody>{teamEquipment.map((item) => <tr key={item.id} className="border-t border-border"><td className="px-4 py-3 font-medium">{item.item_name}</td><td className="px-4 py-3">{item.team_name ?? t("unassigned")}</td><td className="px-4 py-3">{item.responsible_staff_name ?? "—"}</td><td className="px-4 py-3">{item.quantity}</td><td className="px-4 py-3">{t(`states.${item.state}`)}</td><td className="px-4 py-3">{canManage && <div className="flex flex-wrap gap-2"><form action={updateTeamEquipmentAction} className="flex flex-wrap gap-1"><input type="hidden" name="equipment_id" value={item.id} /><input name="item_name" defaultValue={item.item_name} className={`${inputClass} w-28`} /><input name="quantity" type="number" min="0" defaultValue={item.quantity} className={`${inputClass} w-20`} /><select name="state" defaultValue={item.state} className={inputClass}>{states.map((state) => <option key={state} value={state}>{t(`states.${state}`)}</option>)}</select><button type="submit" className="rounded-lg bg-primary px-2 py-1 text-xs text-primary-foreground">{t("save")}</button></form><form action={deleteTeamEquipmentAction}><input type="hidden" name="equipment_id" value={item.id} /><button type="submit" className="rounded-lg border border-destructive px-2 py-1 text-xs text-destructive">{t("delete")}</button></form></div>}</td></tr>)}</tbody></table></div>}</section>}
+      {tab === "team" && (
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">{t("teamTitle")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("teamDescription")}
+              </p>
+            </div>
+            {canManage && (
+              <TrainingEquipmentDialog
+                mode="create"
+                teams={teams.map((team) => ({ id: team.id, name: team.name }))}
+                staff={staffOptions}
+                seasonId={activeSeason?.id ?? null}
+                createAction={createTeamEquipmentAction}
+                updateAction={updateTeamEquipmentAction}
+              />
+            )}
+          </div>
 
-      {tab === "requests" && <section className="space-y-4"><div><h2 className="text-lg font-semibold">{t("requestsTitle")}</h2><p className="mt-1 text-sm text-muted-foreground">{t("requestsDescription")}</p></div>{canReport && <form action={createEquipmentRequestAction} className="grid gap-2 rounded-xl border border-border p-4 sm:grid-cols-4"><select name="team_id" className={inputClass}><option value="">{t("unassigned")}</option>{teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select><input name="item_name" required placeholder={t("itemName")} className={inputClass} /><input name="quantity" type="number" min="1" defaultValue="1" className={inputClass} aria-label={t("quantity")} /><button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">{t("newRequest")}</button><textarea name="note" placeholder={t("note")} className={`${inputClass} sm:col-span-4`} rows={2} /></form>}{requests.length === 0 ? <EmptyState title={t("emptyRequests")} description={t("emptyRequestsDescription")} /> : <div className="space-y-2">{requests.map((request) => <div key={request.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4"><div><p className="font-medium">{request.item_name} × {request.quantity}</p><p className="text-sm text-muted-foreground">{request.team_name ?? t("unassigned")} · {request.requester_name ?? t("unknownRequester")}{request.note ? ` · ${request.note}` : ""}</p></div><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-muted px-2 py-1 text-xs">{t(`requestStatuses.${request.status}`)}</span>{canManage && <>{request.status === "requested" && <><form action={decideEquipmentRequestAction}><input type="hidden" name="request_id" value={request.id} /><input type="hidden" name="status" value="approved" /><button type="submit" className="rounded-lg bg-primary px-2 py-1 text-xs text-primary-foreground">{t("actions.approve")}</button></form><form action={decideEquipmentRequestAction}><input type="hidden" name="request_id" value={request.id} /><input type="hidden" name="status" value="rejected" /><button type="submit" className="rounded-lg border border-destructive px-2 py-1 text-xs text-destructive">{t("actions.reject")}</button></form></>}{request.status === "approved" && <form action={decideEquipmentRequestAction}><input type="hidden" name="request_id" value={request.id} /><input type="hidden" name="status" value="purchased" /><button type="submit" className="rounded-lg bg-primary px-2 py-1 text-xs text-primary-foreground">{t("actions.purchase")}</button></form>}</>}</div></div>)}</div>}{canManage && <EquipmentTypeSettings types={allTypes} teams={teams} selectedTeamId={selectedTeamId} requiredTypeIds={requiredTypeIds} t={tString} />}</section>}
+          {teams.length > 0 && (
+            <TeamFilter
+              teams={teams.map((team) => ({ id: team.id, name: team.name }))}
+              selectedTeamId={trainingTeamId}
+              allLabel={t("allTeams")}
+              allHref={`/${locale}/equipment?tab=team`}
+              teamHref={(teamId) =>
+                `/${locale}/equipment?${tabHref("team", teamId)}`
+              }
+              ariaLabel={t("team")}
+              label={t("team")}
+              tone="soft"
+            />
+          )}
+
+          {visibleTeamEquipment.length === 0 ? (
+            <EmptyState title={t("emptyTeam")} description={t("emptyTeamDescription")} />
+          ) : (
+            <>
+              <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">{t("itemName")}</th>
+                      <th className="px-3 py-3 font-medium">{t("team")}</th>
+                      <th className="px-3 py-3 font-medium">{t("responsible")}</th>
+                      <th className="px-3 py-3 font-medium">{t("quantity")}</th>
+                      <th className="px-3 py-3 font-medium">{t("state")}</th>
+                      <th className="px-4 py-3 text-right font-medium">
+                        {t("actionsLabel")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleTeamEquipment.map((row) => (
+                      <tr key={row.id} className="border-t border-border">
+                        <td className="px-4 py-3 font-medium text-foreground">
+                          {row.item_name}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {row.team_name ?? t("unassigned")}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {row.responsible_staff_name ?? t("noResponsible")}
+                        </td>
+                        <td className="px-3 py-3 tabular-nums text-foreground">
+                          {row.quantity}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {t(`teamStates.${row.state}`)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {canManage && (
+                              <TrainingEquipmentDialog
+                                mode="edit"
+                                equipment={{
+                                  id: row.id,
+                                  item_name: row.item_name,
+                                  team_id: row.team_id,
+                                  responsible_staff_id: row.responsible_staff_id,
+                                  quantity: row.quantity,
+                                  state: row.state,
+                                  note: row.note,
+                                }}
+                                teams={teams.map((team) => ({ id: team.id, name: team.name }))}
+                                staff={staffOptions}
+                                seasonId={activeSeason?.id ?? null}
+                                createAction={createTeamEquipmentAction}
+                                updateAction={updateTeamEquipmentAction}
+                              />
+                            )}
+                            {canManage && (
+                              <ConfirmDeleteButton
+                                action={deleteTeamEquipmentAction}
+                                successMessage={tf("itemDeleted")}
+                                errorMessage={tf("deleteFailed")}
+                                hiddenFields={{ equipment_id: row.id }}
+                                triggerLabel={t("delete")}
+                                triggerClassName="rounded-lg border border-destructive/60 px-2.5 py-1 text-xs font-medium text-destructive"
+                                title={t("deleteConfirmTitle")}
+                                body={t("deleteConfirmBody", { name: row.item_name })}
+                                confirmLabel={t("deleteConfirm")}
+                                cancelLabel={t("cancel")}
+                              />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <ul className="space-y-2 md:hidden">
+                {visibleTeamEquipment.map((row) => (
+                  <li key={row.id} className="rounded-xl border border-border bg-card p-3 text-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-foreground">{row.item_name}</p>
+                      <span className="text-xs text-muted-foreground">
+                        {t(`teamStates.${row.state}`)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {row.team_name ?? t("unassigned")} ·{" "}
+                      {row.responsible_staff_name ?? t("noResponsible")} ·{" "}
+                      {t("quantity")}: {row.quantity}
+                    </p>
+                    {canManage && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <TrainingEquipmentDialog
+                          mode="edit"
+                          equipment={{
+                            id: row.id,
+                            item_name: row.item_name,
+                            team_id: row.team_id,
+                            responsible_staff_id: row.responsible_staff_id,
+                            quantity: row.quantity,
+                            state: row.state,
+                            note: row.note,
+                          }}
+                          teams={teams.map((team) => ({ id: team.id, name: team.name }))}
+                          staff={staffOptions}
+                          seasonId={activeSeason?.id ?? null}
+                          createAction={createTeamEquipmentAction}
+                          updateAction={updateTeamEquipmentAction}
+                        />
+                        <ConfirmDeleteButton
+                          action={deleteTeamEquipmentAction}
+                          successMessage={tf("itemDeleted")}
+                          errorMessage={tf("deleteFailed")}
+                          hiddenFields={{ equipment_id: row.id }}
+                          triggerLabel={t("delete")}
+                          triggerClassName="rounded-lg border border-destructive/60 px-2.5 py-1 text-xs font-medium text-destructive"
+                          title={t("deleteConfirmTitle")}
+                          body={t("deleteConfirmBody", { name: row.item_name })}
+                          confirmLabel={t("deleteConfirm")}
+                          cancelLabel={t("cancel")}
+                        />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
+
+      {tab === "requests" && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">{t("requestsTitle")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("requestsDescription")}
+            </p>
+          </div>
+
+          {canReport && (
+            <MutationForm
+              action={createEquipmentRequestAction}
+              successMessage={tf("equipmentRequestCreated")}
+              errorMessage={tf("addFailed")}
+              className="grid gap-2 rounded-xl border border-border bg-card p-4 sm:grid-cols-4"
+            >
+              <select name="team_id" className={inputClass} aria-label={t("team")}>
+                <option value="">{t("unassigned")}</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                name="item_name"
+                required
+                placeholder={t("itemName")}
+                className={inputClass}
+              />
+              <input
+                name="quantity"
+                type="number"
+                min="1"
+                defaultValue="1"
+                className={inputClass}
+                aria-label={t("quantity")}
+              />
+              <FormSubmitButton
+                idleLabel={t("newRequest")}
+                pendingLabel={t("saving")}
+                className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
+              />
+              <textarea
+                name="note"
+                placeholder={t("note")}
+                className={`${inputClass} sm:col-span-4`}
+                rows={2}
+              />
+            </MutationForm>
+          )}
+
+          {requests.length === 0 ? (
+            <EmptyState title={t("emptyRequests")} description={t("emptyRequestsDescription")} />
+          ) : (
+            <div className="space-y-2">
+              {requests.map((request) => (
+                <div
+                  key={request.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {request.item_name} × {request.quantity}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {request.team_name ?? t("unassigned")} ·{" "}
+                      {request.requester_name ?? t("unknownRequester")}
+                      {request.note ? ` · ${request.note}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-muted px-2 py-1 text-xs">
+                      {t(`requestStatuses.${request.status}`)}
+                    </span>
+                    {canManage && (
+                      <>
+                        {request.status === "requested" && (
+                          <>
+                            <MutationForm
+                              action={decideEquipmentRequestAction}
+                              successMessage={tf("equipmentRequestUpdated")}
+                              errorMessage={tf("saveFailed")}
+                            >
+                              <input type="hidden" name="request_id" value={request.id} />
+                              <input type="hidden" name="status" value="approved" />
+                              <FormSubmitButton
+                                idleLabel={t("actions.approve")}
+                                pendingLabel={t("saving")}
+                                className="rounded-lg bg-primary px-2 py-1 text-xs text-primary-foreground"
+                              />
+                            </MutationForm>
+                            <MutationForm
+                              action={decideEquipmentRequestAction}
+                              successMessage={tf("equipmentRequestUpdated")}
+                              errorMessage={tf("saveFailed")}
+                            >
+                              <input type="hidden" name="request_id" value={request.id} />
+                              <input type="hidden" name="status" value="rejected" />
+                              <FormSubmitButton
+                                idleLabel={t("actions.reject")}
+                                pendingLabel={t("saving")}
+                                className="rounded-lg border border-destructive px-2 py-1 text-xs text-destructive"
+                              />
+                            </MutationForm>
+                          </>
+                        )}
+                        <MutationForm
+                          action={decideEquipmentRequestAction}
+                          successMessage={tf("equipmentRequestUpdated")}
+                          errorMessage={tf("saveFailed")}
+                        >
+                          <input type="hidden" name="request_id" value={request.id} />
+                          <input type="hidden" name="status" value="purchased" />
+                          <FormSubmitButton
+                            idleLabel={t("actions.purchase")}
+                            pendingLabel={t("saving")}
+                            className="rounded-lg border border-border px-2 py-1 text-xs"
+                          />
+                        </MutationForm>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

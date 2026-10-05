@@ -7,7 +7,7 @@ STOŽER development proceeds in 7 phases: a thin Foundation phase establishing m
 ## Phases
 
 - [x] **Phase 1: Foundation** - Multi-tenant infrastructure, auth, RBAC, RLS, i18n, app shell, subscription entitlements
-- [ ] **Phase 2: Club & People** - Seasons, teams, players, staff, guardians, club identity, player administration, registration tracking
+- [x] **Phase 2: Club & People** - Seasons, teams, players, staff, guardians, club identity, player administration, registration tracking (completed 2026-09-30)
 - [ ] **Phase 3: Scheduling & Attendance** - Calendar, venues, training scheduling, attendance, matches, venue conflict detection
 - [ ] **Phase 4: Youth Finance** - Membership fee schemes, automatic charges, payment tracking, cash payments, role-based finance views
 - [ ] **Phase 5: Bank Reconciliation** - Bank statement import, payment matching, FIFO allocation, partial/overpayment, audit trail, reversals
@@ -104,13 +104,28 @@ Plans:
   4. Attendance percentage is visible per team and per player
   5. Basic matches can be recorded with opponent, date, venue, and result
 
-**Plans**: TBD
+**Plans**: 5/5 planned
 
 Plans:
+**Wave 1**
 
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
+- [ ] 03-01-PLAN.md — Foundation: scheduling permissions, venues/trainings/attendance schema, venue registry, libs + tests, nav/i18n
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 03-02-PLAN.md — TRACER: training scheduling + attendance (mark-all-present → exceptions → resolve)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 03-03-PLAN.md — Unified calendar (month/week/day + filters) + meetings/events + sport-aware matches
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 03-04-PLAN.md — Venue conflict warning + all-venues schedule + printable schedule
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 03-05-PLAN.md — Attendance stats (player/team) + PDF/print reports + schema push + full gate
 
 ### Phase 4: Youth Finance
 
@@ -214,7 +229,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/TBD | Not started | - |
-| 2. Club & People | 8/8 | In Progress|  |
+| 2. Club & People | 8/8 | Complete    | 2026-09-30 |
 | 3. Scheduling & Attendance | 0/TBD | Not started | - |
 | 4. Youth Finance | 0/TBD | Not started | - |
 | 5. Bank Reconciliation | 0/TBD | Not started | - |

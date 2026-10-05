@@ -5,26 +5,33 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireOrganization, hasPermission } from "@/lib/organization";
 import { createServerClient } from "@/lib/supabase/server";
-import {
-  listGuardians,
-  normalizeGuardianPrimary,
-  updateGuardians,
-  type GuardianInput,
-  type PreferredContact,
-} from "@/lib/guardian";
+import { hasContactChannel, removeGuardian, resolvePreferredContact, setGuardian, type GuardianInput } from "@/lib/guardian";
 
-const contactMethods = ["phone", "email", "sms", "other"] as const;
-const guardianSchema = z.object({
-  full_name: z.string().trim().min(1).max(160),
-  relationship: z.string().trim().min(1).max(80),
-  phone: z.string().trim().max(50).optional(),
-  email: z.string().trim().email().max(255).optional().or(z.literal("")),
-  preferred_contact: z.enum(contactMethods).nullable(),
-});
+const uuid = z.string().uuid();
+
+// V1 keeps only phone/email as contact channels and requires at least one.
+const guardianSchema = z
+  .object({
+    full_name: z.string().trim().min(1).max(160),
+    relationship: z.string().trim().min(1).max(80),
+    phone: z.string().trim().max(50).optional(),
+    email: z
+      .string()
+      .trim()
+      .max(255)
+      .refine((v) => v === "" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), "Email nije validan")
+      .optional(),
+    preferred_contact: z.enum(["phone", "email"]).nullable().optional(),
+    is_primary: z.boolean().optional(),
+  })
+  .refine((v) => hasContactChannel(v.phone, v.email), {
+    message: "Unesite telefon ili email.",
+    path: ["phone"],
+  });
 
 function athleteFrom(formData: FormData): string {
   const athleteId = formData.get("athlete_id");
-  if (typeof athleteId !== "string" || !z.string().uuid().safeParse(athleteId).success) {
+  if (typeof athleteId !== "string" || !uuid.safeParse(athleteId).success) {
     throw new Error("Nedostaje validan igrač");
   }
   return athleteId;
@@ -38,81 +45,71 @@ async function requireGuardianEdit() {
   return org;
 }
 
+function text(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function redirectTo(athleteId: string) {
+  revalidatePath(`/players/${athleteId}`);
   revalidatePath(`/players/${athleteId}/guardians`);
   redirect(`/players/${athleteId}/guardians`);
 }
 
-export async function saveGuardiansAction(formData: FormData) {
-  const org = await requireGuardianEdit();
-  const athleteId = athleteFrom(formData);
-  const ids = formData.getAll("guardian_id");
-  const names = formData.getAll("full_name");
-  const relationships = formData.getAll("relationship");
-  const phones = formData.getAll("phone");
-  const emails = formData.getAll("email");
-  const contacts = formData.getAll("preferred_contact");
-  const primaryId = formData.get("primary_id");
-
-  const rows: GuardianInput[] = [];
-  for (let index = 0; index < names.length; index += 1) {
-    const rawId = ids[index];
-    const rowId = typeof rawId === "string" ? rawId : undefined;
-    const parsed = guardianSchema.safeParse({
-      full_name: names[index],
-      relationship: relationships[index],
-      phone: phones[index] || undefined,
-      email: emails[index] || undefined,
-      preferred_contact: contacts[index] || null,
-    });
-    if (!parsed.success) throw new Error("Podaci o staratelju nisu validni");
-    rows.push({
-      id: rowId || undefined,
-      athlete_id: athleteId,
-      full_name: parsed.data.full_name,
-      relationship: parsed.data.relationship,
-      phone: parsed.data.phone || null,
-      email: parsed.data.email || null,
-      preferred_contact: parsed.data.preferred_contact as PreferredContact | null,
-      is_primary: typeof primaryId === "string" && primaryId === rowId,
-    });
+/**
+ * Resolve the preferred contact so the stored value always matches an existing
+ * channel (see resolvePreferredContact).
+ */
+function buildInput(formData: FormData, id?: string): GuardianInput {
+  const parsed = guardianSchema.safeParse({
+    full_name: text(formData, "full_name"),
+    relationship: text(formData, "relationship"),
+    phone: text(formData, "phone") || undefined,
+    email: text(formData, "email") || undefined,
+    preferred_contact: text(formData, "preferred_contact") || null,
+    is_primary: formData.get("is_primary") === "true",
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Podaci o staratelju nisu validni");
   }
-
-  const supabase = await createServerClient();
-  const result = await updateGuardians(supabase, org.organizationId, athleteId, rows);
-  if ("error" in result) throw new Error("Staratelji nisu sačuvani: " + result.error);
-  redirectTo(athleteId);
+  const phone = parsed.data.phone ?? "";
+  const email = parsed.data.email ?? "";
+  return {
+    id,
+    athlete_id: athleteFrom(formData),
+    full_name: parsed.data.full_name,
+    relationship: parsed.data.relationship,
+    phone: phone || null,
+    email: email || null,
+    preferred_contact: resolvePreferredContact(
+      parsed.data.preferred_contact ?? null,
+      !!phone,
+      !!email
+    ),
+    is_primary: parsed.data.is_primary ?? false,
+  };
 }
 
 export async function addGuardianAction(formData: FormData) {
   const org = await requireGuardianEdit();
   const athleteId = athleteFrom(formData);
-  const parsed = guardianSchema.safeParse({
-    full_name: formData.get("full_name"),
-    relationship: formData.get("relationship"),
-    phone: formData.get("phone") || undefined,
-    email: formData.get("email") || undefined,
-    preferred_contact: formData.get("preferred_contact") || null,
-  });
-  if (!parsed.success) throw new Error("Podaci o staratelju nisu validni");
-
+  const input = buildInput(formData);
   const supabase = await createServerClient();
-  const existing = await listGuardians(supabase, org.organizationId, athleteId);
-  const newGuardian: GuardianInput = {
-    athlete_id: athleteId,
-    full_name: parsed.data.full_name,
-    relationship: parsed.data.relationship,
-    phone: parsed.data.phone || null,
-    email: parsed.data.email || null,
-    preferred_contact: parsed.data.preferred_contact as PreferredContact | null,
-    is_primary: formData.get("is_primary") === "true",
-  };
-  const result = await updateGuardians(
-    supabase,
-    org.organizationId,
-    athleteId,
-    normalizeGuardianPrimary(athleteId, existing, [newGuardian])
-  );
+  const result = await setGuardian(supabase, org.organizationId, athleteId, input);
+  if ("error" in result) throw new Error("Staratelj nije sačuvan: " + result.error);
+  redirectTo(athleteId);
+}
+
+export async function editGuardianAction(formData: FormData) {
+  const org = await requireGuardianEdit();
+  const athleteId = athleteFrom(formData);
+  const rawId = formData.get("guardian_id");
+  if (typeof rawId !== "string" || !uuid.safeParse(rawId).success) {
+    throw new Error("Nedostaje staratelj");
+  }
+  const input = buildInput(formData, rawId);
+  const supabase = await createServerClient();
+  const result = await setGuardian(supabase, org.organizationId, athleteId, input);
   if ("error" in result) throw new Error("Staratelj nije sačuvan: " + result.error);
   redirectTo(athleteId);
 }
@@ -120,23 +117,12 @@ export async function addGuardianAction(formData: FormData) {
 export async function deleteGuardianAction(formData: FormData) {
   const org = await requireGuardianEdit();
   const athleteId = athleteFrom(formData);
-  const guardianId = formData.get("delete_guardian_id") ?? formData.get("guardian_id");
-  if (typeof guardianId !== "string") throw new Error("Nedostaje staratelj");
+  const guardianId = formData.get("guardian_id") ?? formData.get("delete_guardian_id");
+  if (typeof guardianId !== "string" || !uuid.safeParse(guardianId).success) {
+    throw new Error("Nedostaje staratelj");
+  }
   const supabase = await createServerClient();
-  const existing = await listGuardians(supabase, org.organizationId, athleteId);
-  const remaining = existing
-    .filter((guardian) => guardian.id !== guardianId)
-    .map((guardian) => ({
-      id: guardian.id,
-      athlete_id: athleteId,
-      full_name: guardian.full_name,
-      relationship: guardian.relationship,
-      phone: guardian.phone,
-      email: guardian.email,
-      preferred_contact: guardian.preferred_contact,
-      is_primary: guardian.is_primary,
-    }));
-  const result = await updateGuardians(supabase, org.organizationId, athleteId, remaining);
+  const result = await removeGuardian(supabase, org.organizationId, athleteId, guardianId);
   if ("error" in result) throw new Error("Staratelj nije obrisan: " + result.error);
   redirectTo(athleteId);
 }

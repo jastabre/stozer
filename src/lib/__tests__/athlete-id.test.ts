@@ -5,20 +5,20 @@ import {
 } from "@/lib/athlete-id";
 
 describe("formatClubAthleteNumber", () => {
-  it("formats 1 as C0001 (zero-padded to 4 digits)", () => {
-    expect(formatClubAthleteNumber(1)).toBe("C0001");
+  it("formats 1 as S0001 (zero-padded to 4 digits)", () => {
+    expect(formatClubAthleteNumber(1)).toBe("S0001");
   });
 
-  it("formats 42 as C0042", () => {
-    expect(formatClubAthleteNumber(42)).toBe("C0042");
+  it("formats 42 as S0042", () => {
+    expect(formatClubAthleteNumber(42)).toBe("S0042");
   });
 
-  it("formats 12345 as C12345 (no padding beyond 4 digits)", () => {
-    expect(formatClubAthleteNumber(12345)).toBe("C12345");
+  it("formats 12345 as S12345 (no padding beyond 4 digits)", () => {
+    expect(formatClubAthleteNumber(12345)).toBe("S12345");
   });
 
-  it("formats 9999 as C9999 (exactly 4 digits, no extra padding)", () => {
-    expect(formatClubAthleteNumber(9999)).toBe("C9999");
+  it("formats 9999 as S9999 (exactly 4 digits, no extra padding)", () => {
+    expect(formatClubAthleteNumber(9999)).toBe("S9999");
   });
 });
 

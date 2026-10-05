@@ -1,52 +1,132 @@
 @import "tailwindcss";
 
+/*
+ * STOŽER design tokens — neutral, sports-professional shell.
+ *
+ * The club's primary/secondary colors are injected at runtime by ClubTheme
+ * as CSS custom properties on <html>. Everything below that must stay neutral
+ * stays neutral: only accents (buttons, active nav, focus, selected states)
+ * ever pick up --primary.
+ */
 :root {
-  /* Base palette — neutral/gray, clean */
-  --background: #ffffff;
-  --foreground: #0f172a;
+  color-scheme: light;
 
-  /* Primary — club accent (overridden per-org in Phase 6) */
+  /* One shared shell header height so the sidebar brand divider and the main
+   * top-header divider sit on the exact same Y and read as one continuous
+   * horizontal line across the app shell. Thin product header (56-64px). */
+  --shell-header-height: 4rem;
+
+  /* Canvas + ink — neutral greys with a barely-warm cast, no blue. */
+  --background: #f5f5f4;
+  --foreground: #1c1917;
+
+  /* Elevated surfaces (white cards on the tinted canvas). */
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+
+  /* Primary — single club accent (overridden per-org via ClubTheme). */
   --primary: #2563eb;
   --primary-foreground: #ffffff;
 
-  /* Secondary */
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  /* Muted surfaces / secondary text */
+  --muted: #eeedec;
+  --muted-foreground: #73706c;
 
-  /* Muted */
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-
-  /* Accent */
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  /* Accent hover wash */
+  --accent: #eeedec;
+  --accent-foreground: #1c1917;
 
   /* Destructive */
-  --destructive: #ef4444;
+  --destructive: #c2410c;
   --destructive-foreground: #ffffff;
 
-  /* Border & ring */
-  --border: #e2e8f0;
-  --input: #e2e8f0;
+  /* Hairlines & focus */
+  --border: #e4e2df;
+  --input: #d6d3d1;
   --ring: #2563eb;
 
-  /* Sidebar */
-  --sidebar-background: #f8fafc;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #2563eb;
+  /* Sidebar — light neutral; the club accent appears only on the active item. */
+  --sidebar-background: #fafaf9;
+  --sidebar-foreground: #57534e;
+  --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e2e8f0;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #e2e8f0;
+  --sidebar-accent: #efeeec;
+  --sidebar-accent-foreground: #1c1917;
+  --sidebar-border: #e7e5e4;
+
+  /* Semantic status — success / warning / danger are independent of the club accent. */
+  --success: #059669;
+  --success-bg: #ecfdf5;
+  --warning: #b45309;
+  --warning-bg: #fffbeb;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --info: #0369a1;
+  --info-bg: #f0f9ff;
+  --neutral: #52525b;
+  --neutral-bg: #f4f4f5;
+
+  /* Elevation — reserved for floating layers (drawer/sheet/popover). */
+  --shadow-surface: 0 1px 2px rgb(0 0 0 / 0.05);
+  --shadow-raised: 0 1px 3px rgb(0 0 0 / 0.06), 0 12px 32px -16px rgb(0 0 0 / 0.1);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #101217;
+  --foreground: #e4e6eb;
+  --card: #17191f;
+  --card-foreground: #e4e6eb;
+  --popover: #1d2027;
+  --popover-foreground: #e4e6eb;
+  --muted: #23262d;
+  --muted-foreground: #9aa0aa;
+  --accent: #262a31;
+  --accent-foreground: #f2f4f7;
+  --destructive: #f87171;
+  --destructive-foreground: #0f1113;
+  --border: #2a2e35;
+  --input: #333842;
+  --ring: var(--primary);
+
+  --sidebar-background: #14161b;
+  --sidebar-foreground: #9aa0aa;
+  --sidebar-accent: #1e2128;
+  --sidebar-accent-foreground: #f2f4f7;
+  --sidebar-border: #262a31;
+
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.16);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.16);
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.16);
+  --info: #38bdf8;
+  --info-bg: rgba(56, 189, 248, 0.16);
+  --neutral: #a1a1aa;
+  --neutral-bg: rgba(161, 161, 170, 0.16);
+}
+
+@utility shadow-surface {
+  box-shadow: var(--shadow-surface);
+}
+
+@utility shadow-raised {
+  box-shadow: var(--shadow-raised);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -63,30 +143,195 @@
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-neutral: var(--neutral);
+  --color-neutral-bg: var(--neutral-bg);
   --font-sans: var(--font-inter);
+
+  /* Moderate radii — the shell is structured, not bubbly. */
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.875rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Ensure minimum touch targets of 44px for interactive elements */
-button,
-a,
+/* ------------------------------------------------------------------
+ * Touch targets & density.
+ *
+ * Real form fields keep a generous 44px touch target. Buttons are driven by
+ * their own padding so compact controls (icon buttons, row actions, inline
+ * links-as-buttons) stay compact — the shell is dense, not puffy. Opt a link
+ * back into a big target with `data-touch`.
+ * ------------------------------------------------------------------ */
 input,
 select,
 textarea {
   min-height: 44px;
+  min-width: 0;
+  background-color: var(--card);
 }
 
-/* Only enforce min-width on buttons and links, not text inputs */
-button,
-a {
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a[data-touch] {
+  min-height: 44px;
   min-width: 44px;
+}
+
+/* ------------------------------------------------------------------
+ * Shared control surface — one field look everywhere.
+ * Forms pass `className` (grid layout, width) and layer this on top.
+ * ------------------------------------------------------------------ */
+.field {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--input);
+  background-color: var(--card);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--foreground);
+}
+
+.field::placeholder {
+  color: var(--muted-foreground);
+}
+
+.field:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+select.field:disabled,
+input.field:disabled {
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------
+ * Interaction feedback — fast (150ms), purposeful, quiet.
+ * ------------------------------------------------------------------ */
+@layer base {
+  * {
+    transition-timing-function: ease;
+  }
+
+  a,
+  button {
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+    transition-duration: 150ms;
+  }
+
+  button:active:not(:disabled),
+  a:active:not(:disabled),
+  [role="button"]:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * Motion language — fast, subtle, purposeful.
+ *  - page-rise: route/content entrance (fade + small lift, 220ms)
+ *  - fade-in: drawers/sheets/surfaces that overlay content (160ms)
+ *  - rise-in: small staggered entrances (KPI, attention rows)
+ * Respects prefers-reduced-motion via the media query above.
+ * ------------------------------------------------------------------ */
+@keyframes page-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* No fill-mode: a retained transform animation would turn this wrapper into a
+ * containing block for position:fixed overlays (drawers/modals), which sized
+ * them to the page content instead of the viewport. */
+.animate-page {
+  animation: page-rise 220ms ease-out;
+}
+
+.animate-fade {
+  animation: fade-in 160ms ease-out both;
+}
+
+.animate-rise {
+  animation: rise-in 260ms ease-out both;
+}
+
+/* Scrollbars that don't shout on the tinted canvas. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* Hide the scrollbar visually while keeping the container scrollable (touch,
+ * trackpad, keyboard). Used for horizontal tab bars that must swipe on mobile
+ * but show no scroll thumb on desktop. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

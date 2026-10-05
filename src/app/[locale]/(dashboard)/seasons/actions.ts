@@ -21,11 +21,16 @@ import {
   type PrevMembership,
   type PrevStaffTeam,
 } from "@/lib/rollover";
+import { isValidSeasonRange, SEASON_RANGE_ERROR } from "@/lib/season";
 
 const seasonSchema = z.object({
   name: z.string().min(1).max(100),
   starts_on: z.string().min(1),
+  ends_on: z.string().min(1),
 });
+
+/** Shared state shape for season mutations driven by useActionState. */
+type SeasonActionState = { error?: string } | null;
 
 /**
  * Create a new season. Requires seasons.manage (org scope always from
@@ -44,11 +49,16 @@ export async function createSeason(formData: FormData) {
     throw new Error("Nevalidan unos: " + parsed.error.issues[0]?.message);
   }
 
+  if (!isValidSeasonRange(parsed.data.starts_on, parsed.data.ends_on)) {
+    throw new Error(SEASON_RANGE_ERROR);
+  }
+
   const supabase = await createServerClient();
   const { error } = await supabase.from("seasons").insert({
     organization_id: org.organizationId,
     name: parsed.data.name,
     starts_on: parsed.data.starts_on,
+    ends_on: parsed.data.ends_on,
     is_active: false,
   });
 
@@ -57,6 +67,48 @@ export async function createSeason(formData: FormData) {
   }
 
   revalidatePath("/seasons");
+  revalidatePath("/teams");
+  redirect("/seasons");
+}
+
+/**
+ * Edit an existing season (name + date range). Requires seasons.manage. State
+ * action so the inline form can show a friendly range/permission error. Existing
+ * memberships and history are untouched — only the season row changes.
+ */
+export async function updateSeason(
+  _prev: SeasonActionState,
+  formData: FormData
+): Promise<SeasonActionState> {
+  const org = await requireOrganization();
+  if (!(await hasPermission("seasons.manage"))) {
+    return { error: "Nemate dozvolu za upravljanje sezonama" };
+  }
+
+  const id = formData.get("season_id");
+  if (typeof id !== "string" || !id) return { error: "Nedostaje sezona" };
+
+  const parsed = seasonSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { error: "Nevalidan unos sezone." };
+  if (!isValidSeasonRange(parsed.data.starts_on, parsed.data.ends_on)) {
+    return { error: SEASON_RANGE_ERROR };
+  }
+
+  const supabase = await createServerClient();
+  const { error } = await supabase
+    .from("seasons")
+    .update({
+      name: parsed.data.name,
+      starts_on: parsed.data.starts_on,
+      ends_on: parsed.data.ends_on,
+    })
+    .eq("id", id)
+    .eq("organization_id", org.organizationId);
+
+  if (error) return { error: "Greška pri izmeni sezone. Pokušajte ponovo." };
+
+  revalidatePath("/seasons");
+  revalidatePath("/teams");
   redirect("/seasons");
 }
 
@@ -81,17 +133,23 @@ export async function createSeason(formData: FormData) {
  * Staff assignments carry over unchanged; the unique constraint and
  * ignoreDuplicates make retries idempotent.
  */
-export async function startNewSeason(formData: FormData) {
+export async function startNewSeason(
+  _prev: SeasonActionState,
+  formData: FormData
+): Promise<SeasonActionState> {
   const org = await requireOrganization();
   const allowed = await hasPermission("seasons.manage");
   if (!allowed) {
-    throw new Error("Nemate dozvolu za upravljanje sezonama");
+    return { error: "Nemate dozvolu za upravljanje sezonama" };
   }
 
   const entries = Object.fromEntries(formData.entries());
   const parsed = seasonSchema.safeParse(entries);
   if (!parsed.success) {
-    throw new Error("Nevalidan unos: " + parsed.error.issues[0]?.message);
+    return { error: "Nevalidan unos sezone." };
+  }
+  if (!isValidSeasonRange(parsed.data.starts_on, parsed.data.ends_on)) {
+    return { error: SEASON_RANGE_ERROR };
   }
 
   const supabase = await createServerClient();
@@ -133,6 +191,7 @@ export async function startNewSeason(formData: FormData) {
       organization_id: orgId,
       name: parsed.data.name,
       starts_on: parsed.data.starts_on,
+      ends_on: parsed.data.ends_on,
       is_active: false,
     })
     .select("id")

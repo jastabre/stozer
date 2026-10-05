@@ -42,3 +42,13 @@ next-env.d.ts
 
 # supabase CLI link state (machine-local project ref)
 supabase/.temp/
+
+# local AI/dev tooling
+.commandcode/
+.agents/
+.opencode/
+.mcp.json
+.claude/
+skills-lock.json
+.claude/
+skills-lock.json

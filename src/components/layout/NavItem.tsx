@@ -2,81 +2,71 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
 import {
   Home,
-  Users,
+  Shield,
   UsersRound,
-  Calendar,
-  CalendarCheck,
-  Wallet,
+  UserRound,
+  Shirt,
   FileText,
-  BarChart3,
   Building2,
-  GraduationCap,
-  MoreHorizontal,
   Settings,
-  Lock,
+  Coins,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Home,
-  Users,
+  Shield,
   UsersRound,
-  Calendar,
-  CalendarCheck,
-  Wallet,
+  UserRound,
+  Shirt,
   FileText,
-  BarChart3,
   Building2,
-  GraduationCap,
-  MoreHorizontal,
   Settings,
+  Coins,
 };
 
 export interface NavItemProps {
   label: string;
   href: string;
   icon: string;
-  locked?: boolean;
-  locale?: string;
+  onNavigate?: () => void;
 }
 
-export function NavItem({
-  label,
-  href,
-  icon: iconName,
-  locked = false,
-  locale = "sr",
-}: NavItemProps) {
+export function NavItem({ label, href, icon: iconName, onNavigate }: NavItemProps) {
   const pathname = usePathname();
-  const t = useTranslations();
   const Icon = iconMap[iconName] || Home;
 
+  // Keep links on the current locale so /en navigation stays on /en pages.
+  const locale = pathname.startsWith("/en") ? "en" : "sr";
   const fullPath = `/${locale}${href}`;
-  const isActive = pathname === fullPath || pathname?.startsWith(fullPath + "/");
-
-  if (locked) {
-    return (
-      <div className="flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-muted-foreground/50">
-        <Icon className="h-5 w-5" />
-        <span className="flex-1">{t(label)}</span>
-        <Lock className="h-3.5 w-3.5" />
-      </div>
-    );
-  }
+  // Home (href "") is only active on the exact dashboard path, never on
+  // every /sr/… sub-route.
+  const isActive =
+    href === ""
+      ? pathname === fullPath
+      : pathname === fullPath || pathname.startsWith(fullPath + "/");
 
   return (
     <Link
       href={fullPath}
-      className={`flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${
+      onClick={onNavigate}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "relative flex h-9 items-center gap-2.5 rounded-md px-3 text-sm transition-colors",
         isActive
-          ? "bg-sidebar-accent text-sidebar-primary"
-          : "text-sidebar-foreground hover:bg-sidebar-accent"
-      }`}
+          ? "font-semibold text-sidebar-accent-foreground"
+          : "font-medium text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
+      )}
     >
-      <Icon className="h-5 w-5" />
-      <span>{t(label)}</span>
+      {isActive && (
+        <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-primary" />
+      )}
+      <Icon
+        className={cn("h-[18px] w-[18px] shrink-0", isActive ? "text-primary" : "text-muted-foreground")}
+      />
+      <span className="truncate">{label}</span>
     </Link>
   );
 }

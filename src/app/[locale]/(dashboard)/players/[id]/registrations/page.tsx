@@ -2,51 +2,36 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { format } from "date-fns";
-import { requireOrganization, hasPermission } from "@/lib/organization";
-import { createServerClient } from "@/lib/supabase/server";
-import {
-  listRegistrations,
-  listSeasons,
-  listDocuments,
-  getOrganizationSettings,
-} from "@/lib/club-data";
-import {
-  deriveStatus,
-  daysUntil,
-  STATUS_LABELS,
-  type StatusTone,
-} from "@/lib/status";
+import { hasPermission } from "@/lib/organization";
+import { loadPlayerShell } from "@/lib/player-profile";
+import { listRegistrations, getOrganizationSettings } from "@/lib/club-data";
+import { deriveStatus, daysUntil, type StatusTone } from "@/lib/status";
 import { saveRegistration, deleteRegistration } from "./actions";
-
-const PILL_CLASSES: Record<StatusTone, string> = {
-  green: "bg-emerald-100 text-emerald-800",
-  yellow: "bg-amber-100 text-amber-800",
-  red: "bg-rose-100 text-rose-800",
-};
+import { FormSubmitButton } from "@/components/FormSubmitButton";
+import { MutationForm } from "@/components/ui/MutationForm";
+import { StatusBadge, type StatusTone as BadgeTone } from "@/components/ui/StatusBadge";
+import { DateField } from "@/components/ui/DateField";
 
 export default async function PlayerRegistrationsPage({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
 }) {
-  const { id } = await params;
-  const org = await requireOrganization();
-  const supabase = await createServerClient();
+  const { locale, id } = await params;
   const t = await getTranslations("players.registrations");
+  const tc = await getTranslations("common");
+  const tf = await getTranslations("feedback");
 
-  const [canManage, canView] = await Promise.all([
-    hasPermission("registrations.manage"),
+  const [canView, canManage, { supabase, org, activeSeason }] = await Promise.all([
     hasPermission("registrations.view"),
+    hasPermission("registrations.manage"),
+    loadPlayerShell(id),
   ]);
   if (!canView) notFound();
 
-  const [registrations, settings, seasons, documents] = await Promise.all([
+  const [registrations, settings] = await Promise.all([
     listRegistrations(supabase, org.organizationId, id),
     getOrganizationSettings(supabase, org.organizationId),
-    listSeasons(supabase, org.organizationId),
-    hasPermission("documents.view").then((allowed) =>
-      allowed ? listDocuments(supabase, org.organizationId, "athlete", id) : []
-    ),
   ]);
 
   // A backfill/trigger guarantees a settings row, but tolerate absence with the
@@ -56,258 +41,221 @@ export default async function PlayerRegistrationsPage({
       ? settings.warning_threshold_days
       : 30;
 
-  // Current status (D-10): derived from the current/latest registration record.
+  // Current status (D-10): derived from the latest registration record.
   const current = registrations[0] ?? null;
-  const currentTone = current
+  const currentTone: StatusTone | null = current
     ? deriveStatus(new Date(current.valid_until), threshold)
-    : deriveStatus(null, threshold);
+    : null;
   const daysLeft = current ? daysUntil(new Date(current.valid_until)) : null;
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          href={`/players/${id}`}
-          className="text-sm text-primary hover:underline"
-        >
-          ← {t("back")}
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold">{t("title")}</h1>
-      </div>
+  // The profile's "active" registration (valid or expiring) is edited inline at
+  // the top; expired/absent means the primary action creates a new one.
+  const isCurrentActive =
+    !!current && (currentTone === "green" || currentTone === "yellow");
+  const editing = isCurrentActive ? current : null;
+  const canCreate = canManage && !!activeSeason;
+  const showForm = canManage && (isCurrentActive || canCreate);
 
-      {/* Current registration status (REG-03, D-10) */}
-      <section className="rounded-xl border border-border p-5">
-        <h2 className="text-lg font-semibold">{t("currentStatus")}</h2>
-        {current ? (
-          <div className="mt-3 flex items-center gap-3">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${PILL_CLASSES[currentTone]}`}
-            >
-              {t(`tones.${STATUS_LABELS[currentTone]}`)}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {t("until")} {format(new Date(current.valid_until), "dd MMM yyyy")}
-              {daysLeft !== null && daysLeft >= 0 && (
-                <span className="ml-1">
-                  · {t("daysLeft", { count: daysLeft })}
-                </span>
-              )}
-              {current.season_name && (
-                <span className="ml-1">· {current.season_name}</span>
-              )}
-            </span>
+  function statusFor(tone: StatusTone | null): {
+    badge: BadgeTone;
+    label: string;
+  } {
+    switch (tone) {
+      case "green":
+        return { badge: "green", label: t("statusValid") };
+      case "yellow":
+        return { badge: "yellow", label: t("statusExpiring") };
+      case "red":
+        return { badge: "red", label: t("statusExpired") };
+      default:
+        return { badge: "neutral", label: t("statusNone") };
+    }
+  }
+
+  // History excludes the record currently being edited at the top.
+  const history = registrations.filter((r) => r.id !== editing?.id);
+  const inputClass = "mt-1 rounded-lg border px-3 py-2 text-sm text-foreground";
+
+  return (
+    <div className="space-y-4">
+      {/* Current status — clear at a glance (REG-03, D-10). */}
+      <section className="rounded-xl border border-border bg-card">
+        <header className="border-b border-border px-4 py-2.5 sm:px-5">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {t("title")}
+          </h2>
+        </header>
+        <div className="px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-center gap-3">
+            {(() => {
+              const s = statusFor(currentTone);
+              return <StatusBadge tone={s.badge} label={s.label} />;
+            })()}
+            {current && (
+              <span className="text-sm text-foreground">
+                {t("validUntilDate", {
+                  date: format(new Date(current.valid_until), "dd.MM.yyyy."),
+                })}
+                {daysLeft !== null && daysLeft >= 0 && (
+                  <span className="ml-1 text-muted-foreground">
+                    · {t("daysLeft", { count: daysLeft })}
+                  </span>
+                )}
+              </span>
+            )}
           </div>
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {t("noRegistration")}
-          </p>
-        )}
+          {current?.identifier && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t("federativeIdLine", { id: current.identifier })}
+            </p>
+          )}
+          {!current && !canManage && (
+            <p className="mt-2 text-sm text-muted-foreground">{t("noRegistration")}</p>
+          )}
+        </div>
       </section>
 
-      {/* Add new registration (REG-01/02) */}
-      {canManage && (
-        <details className="rounded-xl border border-border p-4">
-          <summary className="cursor-pointer text-sm font-medium">
-            {t("add")}
-          </summary>
-          <form
-            action={saveRegistration}
-            className="mt-4 grid gap-3 sm:grid-cols-2"
-          >
-            <input type="hidden" name="athlete_id" value={id} />
-            <input
-              name="federation"
-              placeholder={t("federation")}
-              className="rounded-lg border px-3 py-2 text-sm"
-            />
-            <input
-              name="identifier"
-              placeholder={t("identifier")}
-              className="rounded-lg border px-3 py-2 text-sm"
-            />
-            <label className="flex flex-col text-xs text-muted-foreground">
-              {t("validFrom")}
-              <input
-                type="date"
-                name="valid_from"
-                required
-                className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground"
-              />
-            </label>
-            <label className="flex flex-col text-xs text-muted-foreground">
-              {t("validUntil")}
-              <input
-                type="date"
-                name="valid_until"
-                required
-                className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground"
-              />
-            </label>
-            <label className="flex flex-col text-xs text-muted-foreground">
-              {t("season")}
-              <select
-                name="season_id"
-                className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground"
+      {/* Primary action — add new, or edit the active registration inline. */}
+      {canManage &&
+        (showForm ? (
+          <details className="group rounded-xl border border-border bg-card">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium text-primary [&::-webkit-details-marker]:hidden sm:px-5">
+              {editing ? t("editRegistration") : t("add")}
+            </summary>
+            <div className="border-t border-border px-4 py-4 sm:px-5">
+              <MutationForm
+                action={saveRegistration}
+                successMessage={tf("registrationSaved")}
+                errorMessage={tf("saveFailed")}
+                className="grid gap-3 sm:grid-cols-2"
               >
-                <option value="">{t("noSeason")}</option>
-                {seasons.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-              <label className="flex flex-col text-xs text-muted-foreground">
-                {t("document")}
-                <select name="document_id" className="mt-1 rounded-lg border px-3 py-2 text-sm text-foreground">
-                  <option value="">{t("noDocument")}</option>
-                  {documents.filter((document) => document.doc_type === "registration").map((document) => <option key={document.id} value={document.id}>{document.filename}</option>)}
-                </select>
-              </label>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              >
-                {t("submit")}
-              </button>
+                <input type="hidden" name="athlete_id" value={id} />
+                {editing && <input type="hidden" name="id" value={editing.id} />}
+                <label className="flex flex-col text-xs text-muted-foreground sm:col-span-2">
+                  {t("identifier")}
+                  <input
+                    name="identifier"
+                    defaultValue={editing?.identifier ?? ""}
+                    placeholder={t("identifierPlaceholder")}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="flex flex-col text-xs text-muted-foreground">
+                  {t("registrationDate")}
+                  <DateField
+                    name="valid_from"
+                    defaultValue={editing?.valid_from ?? ""}
+                    ariaLabel={t("registrationDate")}
+                    required
+                    className="mt-1"
+                  />
+                </label>
+                <label className="flex flex-col text-xs text-muted-foreground">
+                  {t("validUntil")}
+                  <DateField
+                    name="valid_until"
+                    defaultValue={editing?.valid_until ?? ""}
+                    ariaLabel={t("validUntil")}
+                    required
+                    className="mt-1"
+                  />
+                </label>
+                <label className="flex flex-col text-xs text-muted-foreground sm:col-span-2">
+                  {t("note")}
+                  <textarea
+                    name="note"
+                    rows={2}
+                    defaultValue={editing?.note ?? ""}
+                    placeholder={t("notePlaceholder")}
+                    className={inputClass}
+                  />
+                </label>
+                <div className="flex items-end sm:col-span-2">
+                  <FormSubmitButton
+                    idleLabel={t("submit")}
+                    pendingLabel={t("saving")}
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                  />
+                </div>
+              </MutationForm>
             </div>
-          </form>
-        </details>
-      )}
-
-      {/* Registration records (D-10: current first, past secondary) */}
-      <section className="rounded-xl border border-border p-5">
-        <h2 className="text-lg font-semibold">{t("history")}</h2>
-        {registrations.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">{t("empty")}</p>
+          </details>
         ) : (
-          <div className="mt-3 space-y-3">
-            {registrations.map((r) => {
-              const tone = deriveStatus(new Date(r.valid_until), threshold);
-              const rem = daysUntil(new Date(r.valid_until));
+          !current && (
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-4 sm:px-5">
+              <p className="text-sm text-muted-foreground">{t("noActiveSeasonHint")}</p>
+              <Link
+                href={`/${locale}/seasons`}
+                className="inline-flex h-9 shrink-0 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                {t("startSeason")}
+              </Link>
+            </section>
+          )
+        ))}
+
+      {/* History — compact, hidden when there is nothing to show (no duplicate
+        * "no registrations" message under the "Bez registracije" status). */}
+      {history.length > 0 && (
+        <section className="rounded-xl border border-border bg-card">
+          <header className="border-b border-border px-4 py-2.5 sm:px-5">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {t("history")}
+            </h2>
+          </header>
+          <ul className="divide-y divide-border">
+            {history.map((r) => {
+              const s = statusFor(deriveStatus(new Date(r.valid_until), threshold));
+              const detail = [
+                r.identifier ? t("federativeIdLine", { id: r.identifier }) : "",
+                r.note?.trim() ?? "",
+              ]
+                .filter(Boolean)
+                .join(" · ");
               return (
-                <div
+                <li
                   key={r.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-5"
                 >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${PILL_CLASSES[tone]}`}
-                    >
-                      {t(`tones.${STATUS_LABELS[tone]}`)}
-                    </span>
-                    <div className="text-sm">
-                      <p className="font-medium">
-                        {r.federation || t("noFederation")}
-                        {r.identifier ? ` · ${r.identifier}` : ""}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge tone={s.badge} label={s.label} />
+                      <span className="text-sm text-foreground">
                         {t("range", {
-                          from: format(new Date(r.valid_from), "dd MMM yyyy"),
-                          to: format(new Date(r.valid_until), "dd MMM yyyy"),
+                          from: format(new Date(r.valid_from), "dd.MM.yyyy."),
+                          to: format(new Date(r.valid_until), "dd.MM.yyyy."),
                         })}
-                        {r.season_name ? ` · ${r.season_name}` : ""}
-                        {rem >= 0 ? ` · ${t("daysLeft", { count: rem })}` : ""}
-                      </p>
+                      </span>
                     </div>
+                    {detail && (
+                      <span className="truncate text-xs text-muted-foreground">
+                        {detail}
+                      </span>
+                    )}
                   </div>
                   {canManage && (
-                    <div className="flex gap-2">
-                      <details className="relative">
-                        <summary className="cursor-pointer text-xs font-medium text-primary">
-                          {t("edit")}
-                        </summary>
-                        <form
-                          action={saveRegistration}
-                          className="absolute right-0 z-10 mt-2 w-72 space-y-2 rounded-lg border border-border bg-card p-3 text-left"
-                        >
-                          <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="athlete_id" value={id} />
-                          <input
-                            name="federation"
-                            defaultValue={r.federation ?? ""}
-                            placeholder={t("federation")}
-                            className="w-full rounded-lg border px-3 py-2 text-sm"
-                          />
-                          <input
-                            name="identifier"
-                            defaultValue={r.identifier ?? ""}
-                            placeholder={t("identifier")}
-                            className="w-full rounded-lg border px-3 py-2 text-sm"
-                          />
-                          <div className="flex gap-2">
-                            <label className="flex-1 text-xs text-muted-foreground">
-                              {t("validFrom")}
-                              <input
-                                type="date"
-                                name="valid_from"
-                                defaultValue={r.valid_from}
-                                required
-                                className="mt-1 w-full rounded-lg border px-2 py-1 text-sm"
-                              />
-                            </label>
-                            <label className="flex-1 text-xs text-muted-foreground">
-                              {t("validUntil")}
-                              <input
-                                type="date"
-                                name="valid_until"
-                                defaultValue={r.valid_until}
-                                required
-                                className="mt-1 w-full rounded-lg border px-2 py-1 text-sm"
-                              />
-                            </label>
-                          </div>
-                           <select
-                             name="season_id"
-                            defaultValue={r.season_id ?? ""}
-                            className="w-full rounded-lg border px-2 py-1 text-sm"
-                          >
-                            <option value="">{t("noSeason")}</option>
-                            {seasons.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.name}
-                              </option>
-                            ))}
-                           </select>
-                           <select
-                             name="document_id"
-                             defaultValue={r.document_id ?? ""}
-                             className="w-full rounded-lg border px-2 py-1 text-sm"
-                           >
-                             <option value="">{t("noDocument")}</option>
-                             {documents.filter((document) => document.doc_type === "registration").map((document) => <option key={document.id} value={document.id}>{document.filename}</option>)}
-                           </select>
-                          <button
-                            type="submit"
-                            className="w-full rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground"
-                          >
-                            {t("submit")}
-                          </button>
-                        </form>
-                      </details>
-                      <form action={deleteRegistration}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <input
-                          type="hidden"
-                          name="athlete_id"
-                          value={id}
-                        />
-                        <button
-                          type="submit"
-                          className="rounded-lg border border-destructive px-2.5 py-1 text-xs text-destructive"
-                        >
-                          {t("delete")}
-                        </button>
-                      </form>
-                    </div>
+                    <MutationForm
+                      action={deleteRegistration}
+                      successMessage={tf("itemDeleted")}
+                      errorMessage={tf("deleteFailed")}
+                      resetOnSuccess={false}
+                      className="shrink-0"
+                    >
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="athlete_id" value={id} />
+                      <FormSubmitButton
+                        idleLabel={t("delete")}
+                        pendingLabel={tc("deleting")}
+                        className="rounded-lg border border-destructive px-2.5 py-1 text-xs text-destructive"
+                      />
+                    </MutationForm>
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
-        )}
-      </section>
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

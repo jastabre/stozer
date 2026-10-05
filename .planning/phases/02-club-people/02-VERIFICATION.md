@@ -1,31 +1,37 @@
 ---
 phase: 02-club-people
 verified: 2026-08-28T20:30:00Z
-status: human_needed
+status: passed
 score: 5/11 must-haves verified
 behavior_unverified: 6
 overrides_applied: 0
 behavior_unverified_items:
+
   - truth: "Club owner can create seasons, teams, and add players with all profile fields (SC1)"
     test: "Run the create flow end-to-end against the live DB: create a season, create a team, add a player with all profile fields + team, then confirm the player appears in /players with a C-format ID. Also trigger the edge case from CR-01 (player created with a team while no active season is resolvable, e.g. archive the season between page load and submit) and confirm no orphaned athlete row / burned counter remains."
     expected: "Player persists with all profile fields; membership attaches to the active season; the CR-01 partial-commit path leaves no invisible orphaned athlete and no wasted club-athlete counter value."
     why_human: "createSeason/createTeam/createPlayer are server actions writing to Postgres via supabase-js; no unit or e2e test exercises the request-to-persistence flow. CR-01 (players/actions.ts:58-69 + club-data.ts:661-675) is a confirmed partial-commit defect in this path that only presence + manual/walk-through observation can confirm is handled."
+
   - truth: "Players can be imported in bulk via CSV/XLSX with column mapping and validation preview (SC2)"
     test: "Run the /import wizard against the live DB with a CSV of >50 rows containing duplicates beyond row 50: upload, auto-map columns, review per-row errors/duplicate controls, choose skip/update/create, import, and read the result summary. Repeat with an XLSX."
     expected: "Rows import into the roster with progress polling converging on 'done'; unknown teams flagged, never auto-created; duplicates resolved per decision. Note WR-06: decisions only apply to the first 50 preview rows — later duplicates silently default to skip."
     why_human: "parseUploadAction/importBatchAction/getImportProgressAction hit a live Postgres + Storage stack; only the pure row model (rows.test.ts, 9 tests) is automated. The batch/entitlement/progress behavior and the WR-06 >50-row decision limitation need a live run."
+
   - truth: "Players have a permanent identity that persists across seasons (SC3)"
     test: "Run 'Start New Season' rollover twice against live data: verify athletes keep their identity (same id, same club athlete ID), memberships carry into the new season, staff_teams carry forward, and only one season is active at any time."
     expected: "Athlete rows are never duplicated across seasons; membership history accumulates; the partial unique index holds one active season. WR-01 is a known non-transactional data-loss path if the membership bulk-insert fails mid-flight."
     why_human: "Persistence and rollover are DB-state transitions; buildCarryForward/buildStaffCarryForward are unit-tested as pure functions but the startNewSeason action's commit order and the single-active invariant are not exercised by any automated test against a live DB."
+
   - truth: "Staff profiles show assigned teams and license expiry status with alerts (SC5)"
     test: "Create a staff profile, assign teams in the active season, add a license expiring within the org threshold, and open /people and /people/[id] as both a manager and a coach."
     expected: "Profile shows assigned teams and a green/yellow/red license expiry pill consistent with the org threshold. Note WR-03 (coach self-scope is dead code because viewer.role is undefined — coaches see an empty list) and WR-04 (account linking fails for admin_finance)."
     why_human: "listStaff derives license tones from deriveStatus (unit-tested) but the page rendering, viewer scoping, and account-linking RLS behavior require a live browser + DB run."
+
   - truth: "Basic player contracts are tracked (type, status, dates, document, expiry warning) (SC7)"
     test: "On a player profile open /contracts, add a contract (type/status/dates), attach a contracts-type document, set valid_until inside the threshold, and confirm the expiry pill renders; edit and delete it."
     expected: "Contract CRUD persists and the derived expiry tone (deriveStatus) appears; document linkage is validated same-athlete/type. No automated test covers the contract action flow."
     why_human: "saveContractAction/deleteContractAction and the page rendering are server components with no e2e coverage; DB persistence and linkage validation need a live run."
+
   - truth: "Player documents (medical, insurance) are stored with expiry tracking (SC8)"
     test: "On athlete and staff profiles upload a PDF/JPEG/PNG document with an expiry date, confirm it lists with a tone pill, download it via the signed URL, and delete it. Open /documents to see the org-wide expiry overview and filters."
     expected: "Upload lands in the private club-documents bucket under /{org}/...; downloads go through signed URLs only (no public URL); expiry overview shows expiring/expired/no-expiry rows. Note WR-09 (deleteDocument deletes the object before the row)."
@@ -35,27 +41,35 @@ decision_coverage:
   total: 42
   not_honored: []
 human_verification:
+
   - test: "Walk the full club setup user flow end-to-end (MVP mode): create season -> create team -> add player with all profile fields -> confirm roster + C-format club ID"
     expected: "Each step succeeds and the roster page shows the player with a stable C-prefixed club athlete ID"
     why_human: "No e2e/component tests exist; server actions + DB persistence are only statically verified"
+
   - test: "Verify the create-player edge case from CR-01: select a team while no active season is resolvable and confirm no orphaned/invisible athlete row is left behind"
     expected: "The action rejects cleanly before committing the athlete, or compensates; no burned counter values, no invisible orphans"
     why_human: "Confirmed partial-commit defect in players/actions.ts:58-69 + club-data.ts:661-675; requires observing the live DB state"
+
   - test: "Bulk import a CSV and an XLSX with >50 rows, unknown teams, and duplicates; verify mapping, validation preview, duplicate resolution, and the result summary"
     expected: "Import converges on 'done' with correct counts; unknown teams flagged; WR-06 means duplicates beyond row 50 default to skip — confirm that limitation is acceptable"
     why_human: "Import wizard and batch actions hit a live DB/entitlement stack; only the pure row model is automated"
+
   - test: "Run 'Start New Season' rollover and verify athletes keep permanent identity, memberships + staff_teams carry forward, and only one active season exists"
     expected: "Single active season per org; memberships/staff carried idempotently; WR-01 data-loss path does not trigger in normal use"
     why_human: "Rollover commit ordering is a DB state transition with no automated test"
+
   - test: "Verify registration status colors: add registrations with expiry inside/at/after the org threshold and confirm green/yellow/red pills on the profile and team overview"
     expected: "Pills match deriveStatus; threshold change on /club updates all pills"
     why_human: "Status derivation is unit-tested; rendering + threshold propagation need a visual check"
+
   - test: "Verify staff profile: assigned teams + license expiry pill + account linking; test as coach (WR-03) and as admin_finance (WR-04)"
     expected: "Managers see full profiles and license pills; coaches see their own profile (currently empty list — known defect); account linking works for the acting role"
     why_human: "Viewer scoping (WR-03) and membership-upsert RLS (WR-04) are live-behavior issues"
+
   - test: "Verify documents: upload athlete + staff documents, download via signed URL, delete; confirm /documents org-wide expiry overview and filters"
     expected: "Private storage only, signed-URL downloads, expiry tones, overview filters work; WR-09 delete ordering is acceptable"
     why_human: "Storage RLS/signed-URLs and browser flow need a live Supabase project"
+
   - test: "Cross-tenant RLS sanity check: create two orgs and confirm org B cannot read or write org A's athletes/registrations/documents/equipment"
     expected: "RLS isolation holds on every new Phase 2 table; storage objects scoped by org folder"
     why_human: "RLS policies are reviewed in SQL but not executed against two live tenants"

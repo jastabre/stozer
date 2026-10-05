@@ -7,20 +7,21 @@ import { createServerClient } from "@/lib/supabase/server";
 import { requireOrganization, hasPermission } from "@/lib/organization";
 
 // Zod validation of untrusted dates/notes (T-02-03-01). D-42 hard boundary:
-// ONLY administrative fields — examined_on, valid_until, and an administrative
-// note. This schema whitelists exactly those; no diagnoses, findings, test
-// results, or history fields can ever reach the DB (T-02-03-04).
+// ONLY administrative fields — examined_on, valid_until, an exam type, the
+// institution/doctor and an administrative note. This schema whitelists exactly
+// those; no diagnoses, findings, test results, or history fields can ever reach
+// the DB (T-02-03-04). Certificates are attachments managed in the Documents
+// tab, so `document_id` is intentionally not part of this form and is preserved
+// untouched on edit (never written here).
 const medicalSchema = z
   .object({
     id: z.string().uuid().optional(),
     athlete_id: z.string().uuid(),
     examined_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum mora biti YYYY-MM-DD"),
     valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum mora biti YYYY-MM-DD"),
+    exam_type: z.string().trim().max(100).optional(),
+    institution: z.string().trim().max(200).optional(),
     note: z.string().max(500).optional(),
-    document_id: z.preprocess(
-      (value) => (value === "" ? null : value),
-      z.string().uuid().nullable().optional()
-    ),
   })
   .refine((v) => v.valid_until >= v.examined_on, {
     message: "Datum isteka mora biti posle datuma pregleda",
@@ -30,13 +31,13 @@ const medicalSchema = z
 /**
  * Create (or update) a medical examination record. Guards: registrations.manage
  * (record entry rides the existing registrations.manage; no medical.manage),
- * org from requireOrganization. Certificate attachment lands in 02-05 with the
- * documents module — only the data columns are written here.
+ * org from requireOrganization. The certificate link is managed in the
+ * Documents module, so edits never touch `document_id` (preserved as-is).
  */
 export async function saveMedicalExamination(formData: FormData) {
   const org = await requireOrganization();
   const allowed = await hasPermission("registrations.manage");
-  if (!allowed) throw new Error("Nemate dozvolu za izmenu medicinskih pregleda");
+  if (!allowed) throw new Error("Nemate dozvolu za izmenu lekarskih pregleda");
 
   const parsed = medicalSchema.safeParse(
     Object.fromEntries(formData.entries())
@@ -48,18 +49,6 @@ export async function saveMedicalExamination(formData: FormData) {
   const { id, ...fields } = parsed.data;
 
   const supabase = await createServerClient();
-  if (fields.document_id) {
-    const { data: document, error: documentError } = await supabase
-      .from("documents")
-      .select("id")
-      .eq("id", fields.document_id)
-      .eq("organization_id", org.organizationId)
-      .eq("owner_type", "athlete")
-      .eq("owner_id", athleteId)
-      .eq("doc_type", "medical")
-      .maybeSingle();
-    if (documentError || !document) throw new Error("Medicinski dokument nije pronađen");
-  }
 
   // WR-05: verify the athlete belongs to this org before inserting/updating —
   // cross-org parent references are rejected by the composite org FK (00011).
@@ -77,8 +66,9 @@ export async function saveMedicalExamination(formData: FormData) {
       .update({
         examined_on: fields.examined_on,
         valid_until: fields.valid_until,
+        exam_type: fields.exam_type?.trim() ? fields.exam_type.trim() : null,
+        institution: fields.institution?.trim() ? fields.institution.trim() : null,
         note: fields.note ?? null,
-        document_id: fields.document_id ?? null,
       })
       .eq("id", id)
       .eq("organization_id", org.organizationId)
@@ -91,8 +81,9 @@ export async function saveMedicalExamination(formData: FormData) {
       athlete_id: athleteId,
       examined_on: fields.examined_on,
       valid_until: fields.valid_until,
+      exam_type: fields.exam_type?.trim() ? fields.exam_type.trim() : null,
+      institution: fields.institution?.trim() ? fields.institution.trim() : null,
       note: fields.note ?? null,
-      document_id: fields.document_id ?? null,
     });
     if (error) throw new Error("Greška pri upisu pregleda: " + error.message);
   }
@@ -107,7 +98,7 @@ export async function saveMedicalExamination(formData: FormData) {
 export async function deleteMedicalExamination(formData: FormData) {
   const org = await requireOrganization();
   const allowed = await hasPermission("registrations.manage");
-  if (!allowed) throw new Error("Nemate dozvolu za izmenu medicinskih pregleda");
+  if (!allowed) throw new Error("Nemate dozvolu za izmenu lekarskih pregleda");
 
   const id = formData.get("id");
   const athleteId = formData.get("athlete_id");

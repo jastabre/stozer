@@ -164,7 +164,7 @@ function numberKey(value: unknown): string | null {
     return String(value);
   }
   if (typeof value !== "string" || !value.trim()) return null;
-  const digits = value.trim().match(/^C?(\d+)$/i)?.[1];
+  const digits = value.trim().match(/^[CS]?(\d+)$/i)?.[1];
   return digits && Number(digits) > 0 ? String(Number(digits)) : null;
 }
 

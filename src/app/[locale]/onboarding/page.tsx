@@ -6,11 +6,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { onboardingSchema, type OnboardingInput } from "@/schemas/onboarding";
+import { useToast } from "@/components/ui/Toast";
+import { safeFeedbackMessage } from "@/lib/feedback";
 import { createOrganization } from "./actions";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const t = useTranslations("onboarding");
+  const tf = useTranslations("feedback");
+  const { success, error: toastError } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +27,6 @@ export default function OnboardingPage() {
     defaultValues: {
       sport: "football",
       language: "sr",
-      currency: "RSD",
       timezone: "Europe/Belgrade",
     } as OnboardingInput,
   });
@@ -34,10 +37,17 @@ export default function OnboardingPage() {
 
     try {
       await createOrganization(data);
+      success(tf("organizationCreated"));
       router.push("/sr");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Došlo je do greške");
+      setError(
+        safeFeedbackMessage(
+          err instanceof Error ? err.message : null,
+          tf("actionFailed")
+        )
+      );
+      toastError(tf("actionFailed"));
       setLoading(false);
     }
   }

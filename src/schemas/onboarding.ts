@@ -12,7 +12,6 @@ export const onboardingSchema = z.object({
   language: z.enum(["sr", "en"], {
     required_error: "Izaberite jezik",
   }),
-  currency: z.string(),
   timezone: z.string(),
 });
 

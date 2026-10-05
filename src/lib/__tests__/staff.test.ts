@@ -91,6 +91,7 @@ const baseConfig: Record<string, MockResult> = {
   staff: { data: [staffRow], error: null },
   staff_teams: { data: [], error: null },
   staff_licenses: { data: [], error: null },
+  staff_functions: { data: [], error: null },
 };
 
 function staffQueryChain(supabase: ReturnType<typeof mockSupabase>) {
@@ -162,6 +163,73 @@ describe("listStaff license tones and days_left (STRC-06)", () => {
       const expiry = new Date(`${l.valid_until}T00:00:00`);
       expect(l.days_left).toBe(differenceInCalendarDays(expiry, now));
     }
+  });
+});
+
+describe("listStaff club functions and athlete link", () => {
+  it("attaches every function, legacy primary kept first in display order", async () => {
+    const functions = [
+      {
+        id: "f1",
+        organization_id: org,
+        staff_id: "staff-1",
+        function_key: "assistant_coach",
+        custom_label: null,
+        is_primary: false,
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+      },
+      {
+        id: "f2",
+        organization_id: org,
+        staff_id: "staff-1",
+        function_key: "sport_director",
+        custom_label: null,
+        is_primary: true,
+        created_at: "2026-01-02",
+        updated_at: "2026-01-02",
+      },
+    ];
+    const supabase = mockSupabase({
+      ...baseConfig,
+      staff_functions: { data: functions, error: null },
+    });
+    const people = await listStaff(supabase as never, org);
+    expect(people[0].functions.map((f) => f.function_key)).toEqual([
+      "sport_director",
+      "assistant_coach",
+    ]);
+    expect(people[0].athlete).toBeNull();
+  });
+
+  it("resolves the linked athlete with the active-season team", async () => {
+    const supabase = mockSupabase({
+      ...baseConfig,
+      staff: { data: [{ ...staffRow, athlete_id: "ath-1" }], error: null },
+      athletes: {
+        data: [
+          {
+            id: "ath-1",
+            first_name: "Marko",
+            last_name: "Marković",
+            club_athlete_number: 7,
+          },
+        ],
+        error: null,
+      },
+      seasonal_memberships: {
+        data: [{ athlete_id: "ath-1", teams: { name: "Prvi tim" } }],
+        error: null,
+      },
+    });
+    const people = await listStaff(supabase as never, org);
+    expect(people[0].athlete).toEqual({
+      id: "ath-1",
+      first_name: "Marko",
+      last_name: "Marković",
+      club_athlete_number: 7,
+      team_name: "Prvi tim",
+    });
   });
 });
 

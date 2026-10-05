@@ -7,42 +7,31 @@ import {
   listTeamStatusOverview,
   getActiveSeason,
   getOrganizationSettings,
-  listSeasons,
+  listAthletes,
+  listSeasonMemberAthleteIds,
 } from "@/lib/club-data";
+import { deriveStatus, medicalStatus } from "@/lib/status";
+import { positionsForSport } from "@/lib/positions";
+import { addPlayerToTeam, removePlayerFromTeam } from "../../actions";
+import { TeamHeader } from "@/components/teams/TeamHeader";
+import { AddTeamPlayer } from "@/components/teams/AddTeamPlayer";
 import {
-  deriveStatus,
-  medicalStatus,
-  type StatusTone,
-  type MedicalTone,
-} from "@/lib/status";
-import { formatClubAthleteNumber } from "@/lib/athlete-id";
-
-const REG_PILL: Record<StatusTone, string> = {
-  green: "bg-emerald-100 text-emerald-800",
-  yellow: "bg-amber-100 text-amber-800",
-  red: "bg-rose-100 text-rose-800",
-};
-const MED_PILL: Record<MedicalTone, string> = {
-  not_recorded: "bg-slate-100 text-slate-700",
-  valid: "bg-emerald-100 text-emerald-800",
-  expiring_soon: "bg-amber-100 text-amber-800",
-  expired: "bg-rose-100 text-rose-800",
-};
+  TeamRoster,
+  type RosterRow,
+  type TeamRosterLabels,
+} from "@/components/teams/TeamRoster";
 
 export default async function TeamOverviewPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
-  searchParams: Promise<{ reg?: string; med?: string; season?: string }>;
 }) {
-  const { id: teamId } = await params;
-  const sp = await searchParams;
+  const { locale, id: teamId } = await params;
   const org = await requireOrganization();
   const supabase = await createServerClient();
   const t = await getTranslations("teams.overview");
-  const tReg = await getTranslations("players.registrations");
-  const tMed = await getTranslations("players.medical");
+  const tt = await getTranslations("teams");
+  const tc = await getTranslations("common");
 
   const [canViewReg, canViewMed] = await Promise.all([
     hasPermission("registrations.view"),
@@ -50,200 +39,203 @@ export default async function TeamOverviewPage({
   ]);
   if (!canViewReg && !canViewMed) notFound();
 
-  const [seasons, active, settings, teamResp] = await Promise.all([
-    listSeasons(supabase, org.organizationId),
+  const [active, settings, teamResp] = await Promise.all([
     getActiveSeason(supabase, org.organizationId),
     getOrganizationSettings(supabase, org.organizationId),
     supabase
       .from("teams")
-      .select("id, name, organization_id")
+      .select("id, name, category, sport, organization_id")
       .eq("id", teamId)
       .eq("organization_id", org.organizationId)
       .maybeSingle(),
   ]);
   const team = teamResp.data;
-
   if (!team) notFound();
 
-  const seasonId =
-    sp.season && sp.season !== "" ? sp.season : active?.id ?? "";
+  const [canEditTeams, canEditAthletes, athletes, seasonMemberIds] =
+    await Promise.all([
+      hasPermission("teams.edit"),
+      hasPermission("athletes.edit"),
+      listAthletes(supabase, org.organizationId),
+      active
+        ? listSeasonMemberAthleteIds(supabase, org.organizationId, active.id)
+        : Promise.resolve([]),
+    ]);
+  const canAssign = canEditTeams || canEditAthletes;
+
+  // Eligibility is "no membership in the ACTIVE season" — an athlete with only
+  // historical memberships is still available.
+  const assignedThisSeason = new Set(seasonMemberIds);
+  const eligibleAthletes = athletes
+    .filter((a) => !assignedThisSeason.has(a.id))
+    .map((a) => ({ id: a.id, name: `${a.last_name} ${a.first_name}` }));
+
   const threshold =
     settings?.warning_threshold_days != null
       ? settings.warning_threshold_days
       : 30;
 
-  const rows = seasonId
-    ? await listTeamStatusOverview(supabase, org.organizationId, teamId, seasonId)
+  const rows = active
+    ? await listTeamStatusOverview(
+        supabase,
+        org.organizationId,
+        teamId,
+        active.id
+      )
     : [];
 
-  const regFilter = sp.reg ?? "all";
-  const medFilter = sp.med ?? "all";
+  const rosterRows: RosterRow[] = rows.map((row) => ({
+    athleteId: row.athleteId,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    position: row.position,
+    clubAthleteNumber: row.club_athlete_number,
+    jerseyNumber: row.jersey_number,
+    regState: !row.latestRegistrationValidUntil
+      ? "none"
+      : deriveStatus(new Date(row.latestRegistrationValidUntil), threshold),
+    medTone: medicalStatus(
+      row.latestMedicalValidUntil
+        ? new Date(row.latestMedicalValidUntil)
+        : null,
+      threshold
+    ),
+  }));
 
-  const visible = rows.filter((r) => {
-    const regTone = r.latestRegistrationValidUntil
-      ? deriveStatus(new Date(r.latestRegistrationValidUntil), threshold)
-      : deriveStatus(null, threshold);
-    const medTone = r.latestMedicalValidUntil
-      ? medicalStatus(new Date(r.latestMedicalValidUntil), threshold)
-      : medicalStatus(null, threshold);
-    if (regFilter !== "all" && regTone !== regFilter) return false;
-    if (medFilter !== "all" && medTone !== medFilter) return false;
-    return true;
-  });
+  const seasonNode = active ? (
+    <span>{active.name}</span>
+  ) : (
+    <Link
+      href={`/${locale}/seasons`}
+      className="font-medium text-primary hover:underline"
+    >
+      {t("startSeason")}
+    </Link>
+  );
 
-  const regTones: StatusTone[] = ["green", "yellow", "red"];
-  const medTones: MedicalTone[] = [
-    "not_recorded",
-    "valid",
-    "expiring_soon",
-    "expired",
+  const meta = (
+    <>
+      {tt(`categories.${team.category}`)} · {seasonNode}
+      {active ? ` · ${t("memberCount", { count: rows.length })}` : ""}
+    </>
+  );
+
+  const tabs =
+    team.category === "first_team"
+      ? [
+          {
+            href: `/${locale}/teams/${team.id}/registrations`,
+            label: t("tabPlayers"),
+          },
+          {
+            href: `/${locale}/teams/${team.id}/payments`,
+            label: t("tabPayments"),
+          },
+        ]
+      : undefined;
+
+  // Position filter options come from the shared sport preset system (localized
+  // labels that match the stored position values). "all" is the neutral default.
+  const positionOptions = [
+    { value: "all", label: t("filterAll") },
+    ...positionsForSport(team.sport, locale === "en" ? "en" : "sr").map(
+      (position) => ({ value: position.label, label: position.label })
+    ),
   ];
 
+  const rosterLabels: TeamRosterLabels = {
+    searchPlaceholder: t("searchPlaceholder"),
+    filters: t("filters"),
+    clearFilters: t("clearFilters"),
+    filterPosition: t("table.position"),
+    positionOptions,
+    filterReg: t("filterReg"),
+    filterMed: t("filterMed"),
+    regOptions: [
+      { value: "all", label: t("filterAll") },
+      { value: "green", label: t("regGreen") },
+      { value: "yellow", label: t("regYellow") },
+      { value: "red", label: t("regRed") },
+      { value: "none", label: t("regNone") },
+    ],
+    medOptions: [
+      { value: "all", label: t("filterAll") },
+      { value: "valid", label: t("medValid") },
+      { value: "expiring_soon", label: t("medSoon") },
+      { value: "expired", label: t("medExpired") },
+      { value: "not_recorded", label: t("medNone") },
+    ],
+    table: {
+      clubId: t("table.clubId"),
+      name: t("table.name"),
+      jersey: t("table.jersey"),
+      position: t("table.position"),
+      registration: t("table.registration"),
+      medical: t("table.medical"),
+      actions: t("table.actions"),
+    },
+    empty: t("emptyRoster"),
+    emptyFiltered: t("emptyFiltered"),
+    remove: t("removePlayer"),
+    removeTitle: t("removeConfirmTitle"),
+    removeBody: t("removeConfirmBody"),
+    removeConfirm: t("removeConfirm"),
+    removing: t("removing"),
+    cancel: tc("cancel"),
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <Link
-            href="/teams"
-            className="text-sm text-primary hover:underline"
-          >
-            ← {t("back")}
-          </Link>
-          <h1 className="mt-1 text-2xl font-bold">
-            {team.name} — {t("title")}
-          </h1>
-        </div>
-        <form method="get" action="" className="flex items-center gap-2 text-xs">
-          <label className="text-muted-foreground">{t("season")}</label>
-          <input type="hidden" name="reg" value={regFilter} />
-          <input type="hidden" name="med" value={medFilter} />
-          <select
-            name="season"
-            defaultValue={seasonId}
-            className="rounded-lg border px-3 py-2 text-sm"
-          >
-            <option value="">{t("noSeason")}</option>
-            {seasons.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="rounded-lg border border-border px-3 py-2 hover:border-primary"
-          >
-            {t("go")}
-          </button>
-        </form>
-      </div>
+    <div className="space-y-5">
+      <TeamHeader
+        backHref={`/${locale}/teams`}
+        backLabel={t("back")}
+        title={team.name}
+        meta={meta}
+        description={t("subtitle")}
+        action={
+          canAssign && active ? (
+            <AddTeamPlayer
+              teamId={team.id}
+              athletes={eligibleAthletes}
+              totalPlayers={athletes.length}
+              playersHref={`/${locale}/players`}
+              action={addPlayerToTeam}
+              labels={{
+                addToTeam: t("addToTeam"),
+                addTitle: t("addPlayerTitle"),
+                player: t("playerLabel"),
+                choosePlayer: t("choosePlayer"),
+                jerseyNumber: t("jerseyNumber"),
+                add: t("addPlayer"),
+                adding: t("adding"),
+                cancel: tc("cancel"),
+                noPlayersInClub: t("noPlayersInClub"),
+                noPlayersInClubHint: t("noPlayersInClubHint"),
+                goToPlayers: t("goToPlayers"),
+                noEligiblePlayers: t("noEligiblePlayers"),
+                noEligiblePlayersHint: t("noEligiblePlayersHint"),
+              }}
+            />
+          ) : null
+        }
+        tabs={tabs}
+        activeHref={`/${locale}/teams/${team.id}/registrations`}
+        tabsLabel={tt("title")}
+      />
 
-      {/* Filters (D-38: registration tone AND medical tone, never merged D-40) */}
-      <div className="flex flex-wrap gap-4 rounded-xl border border-border p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">{t("filterReg")}</span>
-          {([["all", t("all")]] as [string, string][])
-            .concat(regTones.map((rt) => [rt, tReg(`tones.${rt}`)]))
-            .map(([val, label]) => (
-              <a
-                key={val}
-                href={`?reg=${val}&med=${medFilter}&season=${seasonId}`}
-                className={`rounded-full px-3 py-1 text-xs ${
-                  regFilter === val
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border text-muted-foreground hover:border-primary"
-                }`}
-              >
-                {label}
-              </a>
-            ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">{t("filterMed")}</span>
-          {([["all", t("all")]] as [string, string][])
-            .concat(medTones.map((mt) => [mt, tMed(`tones.${mt}`)]))
-            .map(([val, label]) => (
-              <a
-                key={val}
-                href={`?reg=${regFilter}&med=${val}&season=${seasonId}`}
-                className={`rounded-full px-3 py-1 text-xs ${
-                  medFilter === val
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border text-muted-foreground hover:border-primary"
-                }`}
-              >
-                {label}
-              </a>
-            ))}
-        </div>
-      </div>
-
-      {!seasonId ? (
-        <div className="rounded-xl border border-border p-6 text-sm text-muted-foreground">
+      {!active ? (
+        <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
           {t("noActiveSeason")}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2">{t("table.name")}</th>
-                <th className="px-4 py-2">{t("table.clubId")}</th>
-                <th className="px-4 py-2">{t("table.jersey")}</th>
-                <th className="px-4 py-2">{t("table.registration")}</th>
-                <th className="px-4 py-2">{t("table.medical")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.length === 0 ? (
-                <tr className="border-t border-border">
-                  <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
-                    {t("empty")}
-                  </td>
-                </tr>
-              ) : (
-                visible.map((r) => {
-                  const regTone = r.latestRegistrationValidUntil
-                    ? deriveStatus(new Date(r.latestRegistrationValidUntil), threshold)
-                    : deriveStatus(null, threshold);
-                  const medTone = r.latestMedicalValidUntil
-                    ? medicalStatus(new Date(r.latestMedicalValidUntil), threshold)
-                    : medicalStatus(null, threshold);
-                  return (
-                    <tr key={r.athleteId} className="border-t border-border">
-                      <td className="px-4 py-2">
-                        <Link
-                          href={`/players/${r.athleteId}`}
-                          className="font-medium hover:text-primary"
-                        >
-                          {r.last_name} {r.first_name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-2 font-mono text-xs">
-                        {formatClubAthleteNumber(r.club_athlete_number)}
-                      </td>
-                      <td className="px-4 py-2">{r.jersey_number ?? "—"}</td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${REG_PILL[regTone]}`}
-                        >
-                          {tReg(`tones.${regTone}`)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${MED_PILL[medTone]}`}
-                        >
-                          {tMed(`tones.${medTone}`)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <TeamRoster
+          locale={locale}
+          teamId={team.id}
+          rows={rosterRows}
+          canAssign={canAssign}
+          removeAction={removePlayerFromTeam}
+          labels={rosterLabels}
+        />
       )}
     </div>
   );

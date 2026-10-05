@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
+import { normalizeCurrency, type Currency } from "@/lib/currency";
 import type { AppRole, AppPermission } from "@/types/database";
 
 export interface OrganizationContext {
@@ -79,6 +80,20 @@ export async function requirePermission(permission: AppPermission): Promise<void
   if (!allowed) {
     redirect("/sr");
   }
+}
+
+/**
+ * The club's single currency (V1) from `organizations.currency`. Falls back to
+ * RSD when the value is missing or unsupported; no conversion happens here.
+ */
+export async function getOrganizationCurrency(organizationId: string): Promise<Currency> {
+  const supabase = await createServerClient();
+  const { data } = await supabase
+    .from("organizations")
+    .select("currency")
+    .eq("id", organizationId)
+    .maybeSingle();
+  return normalizeCurrency(data?.currency);
 }
 
 /**

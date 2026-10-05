@@ -1,111 +1,114 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
-import { createBrowserClient } from "@/lib/supabase/browser";
-import { getNavConfig, type NavItem as NavItemType } from "@/lib/rbac";
-import type { AppRole } from "@/types/database";
+import type { NavItem as NavItemType } from "@/lib/rbac";
 import {
   Home,
-  Users,
+  Shield,
   UsersRound,
-  Calendar,
-  CalendarCheck,
-  Wallet,
+  UserRound,
+  Shirt,
   FileText,
-  BarChart3,
   Building2,
-  GraduationCap,
-  MoreHorizontal,
   Settings,
+  Coins,
+  MoreHorizontal,
   X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Home,
-  Users,
+  Shield,
   UsersRound,
-  Calendar,
-  CalendarCheck,
-  Wallet,
+  UserRound,
+  Shirt,
   FileText,
-  BarChart3,
   Building2,
-  GraduationCap,
-  MoreHorizontal,
   Settings,
+  Coins,
+  MoreHorizontal,
 };
 
-export function BottomNav() {
+/**
+ * Mobile bottom navigation.
+ *
+ * Pattern: the 4 most important sections live in the tab bar, everything else
+ * goes behind a "More" sheet. 4+1 is the standard mobile navigation pattern —
+ * it keeps thumb-reach navigation to a glanceable set without cramming every
+ * section into the bar. When the role has exactly 4 sections (coach) the
+ * More button is omitted.
+ */
+export function BottomNav({
+  navItems,
+  moreLabel,
+}: {
+  navItems: NavItemType[];
+  moreLabel: string;
+}) {
   const pathname = usePathname();
-  const t = useTranslations();
-  const [navItems, setNavItems] = useState<NavItemType[]>([]);
   const [showMore, setShowMore] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const locale = pathname.startsWith("/en") ? "en" : "sr";
 
-    async function loadRole() {
-      const supabase = createBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (cancelled) return;
-      const role = (user?.app_metadata?.user_role as string) || "club_president";
-      setNavItems(getNavConfig(role as AppRole));
-    }
-    loadRole();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Coach gets 4 items in bottom nav, others get first 4
   const primaryNav = navItems.slice(0, 4);
   const moreNav = navItems.slice(4);
 
+  const isActive = (item: NavItemType) => {
+    const fullPath = `/${locale}${item.href}`;
+    return item.href === ""
+      ? pathname === fullPath
+      : pathname === fullPath || pathname.startsWith(fullPath + "/");
+  };
+
+  const tabClass = (active: boolean) =>
+    cn(
+      "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-medium transition-colors",
+      active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+    );
+
   return (
     <>
-      {/* More drawer */}
+      {/* More sheet */}
       {showMore && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowMore(false)}
+            aria-hidden="true"
           />
-          <div className="absolute bottom-0 left-0 right-0 rounded-t-xl bg-card p-4 pb-[env(safe-area-inset-bottom)]">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-medium">Više</h3>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-card px-4 pb-[env(safe-area-inset-bottom)] pt-2 shadow-raised">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">{moreLabel}</h3>
               <button
                 onClick={() => setShowMore(false)}
-                className="flex h-11 w-11 items-center justify-center rounded-lg"
+                aria-label="Close"
+                className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="space-y-1">
+            <nav className="space-y-1 pb-2">
               {moreNav.map((item) => {
                 const Icon = iconMap[item.icon] || Home;
-                const fullPath = `/sr${item.href}`;
-                const isActive =
-                  pathname === fullPath ||
-                  pathname?.startsWith(fullPath + "/");
+                const active = isActive(item);
                 return (
                   <Link
                     key={item.href}
-                    href={fullPath}
+                    href={`/${locale}${item.href}`}
                     onClick={() => setShowMore(false)}
-                    className={`flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium ${
-                      isActive
+                    className={cn(
+                      "flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
+                      active
                         ? "bg-primary/10 text-primary"
                         : "text-foreground hover:bg-muted"
-                    }`}
+                    )}
                   >
                     <Icon className="h-5 w-5" />
-                    <span>{t(item.label)}</span>
+                    <span>{item.label}</span>
                   </Link>
                 );
               })}
@@ -114,43 +117,46 @@ export function BottomNav() {
         </div>
       )}
 
-      {/* Bottom nav bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-card px-2 pb-[env(safe-area-inset-bottom)] md:hidden">
+      {/* Bottom tab bar: 4 primary tabs + More */}
+      <nav
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card/95 backdrop-blur px-1 pb-[env(safe-area-inset-bottom)] md:hidden",
+          moreNav.length > 0 ? "justify-between" : "justify-around"
+        )}
+      >
         {primaryNav.map((item) => {
           const Icon = iconMap[item.icon] || Home;
-          const fullPath = `/sr${item.href}`;
-          const isActive =
-            pathname === fullPath || pathname?.startsWith(fullPath + "/");
-
-          // Last item in coach nav (More) opens drawer
-          if (item.icon === "MoreHorizontal" && moreNav.length > 0) {
-            return (
-              <button
-                key={item.href}
-                onClick={() => setShowMore(true)}
-                className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-medium text-muted-foreground"
-              >
-                <Icon className="h-5 w-5" />
-                <span>{t(item.label)}</span>
-              </button>
-            );
-          }
-
+          const active = isActive(item);
           return (
             <Link
               key={item.href}
-              href={fullPath}
-              className={`flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors ${
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              href={`/${locale}${item.href}`}
+              className={tabClass(active)}
+              aria-current={active ? "page" : undefined}
             >
+              {active && (
+                <span
+                  className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary"
+                  aria-hidden="true"
+                />
+              )}
               <Icon className="h-5 w-5" />
-              <span>{t(item.label)}</span>
+              <span className={cn(active && "font-semibold")}>{item.label}</span>
             </Link>
           );
         })}
+        {moreNav.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowMore(true)}
+            className={cn(tabClass(false), "min-w-0 flex-1")}
+            aria-haspopup="menu"
+            aria-expanded={showMore}
+          >
+            <MoreHorizontal className="h-5 w-5" />
+            <span>{moreLabel}</span>
+          </button>
+        )}
       </nav>
     </>
   );

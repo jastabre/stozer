@@ -21,7 +21,22 @@ A club president or youth director opens Stožer and instantly knows: who paid, 
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Player profiles with permanent identity across seasons — Phase 2
+- ✓ Staff/coach profiles with licenses and documents — Phase 2
+- ✓ Guardian contacts for minor players — Phase 2
+- ✓ Club athlete ID system for payment references — Phase 2
+- ✓ Team/selection management (Senior, U19, U17, U15, etc.) — Phase 2
+- ✓ Sport abstraction — football and basketball from day one — Phase 2
+- ✓ Season management with rollover — Phase 2
+- ✓ Player registration tracking with expiration alerts — Phase 2
+- ✓ Player contract management with expiration alerts — Phase 2
+- ✓ Generic athlete identifier system (federation IDs) — Phase 2
+- ✓ Player documents (registration, contract, medical, insurance) — Phase 2
+- ✓ Player equipment sizes, issue tracking and per-team XLSX export — Phase 2
+- ✓ Club identity: name, crest (Grb kluba), currency — Phase 2
+- ✓ Users & Access — predefined role registry under Klub → Korisnici i pristup — Phase 2
+- ✓ Club Documents (reusable club files/templates) under Klub → Dokumenti kluba — Phase 2
+- ✓ First-team contracts & payments recording — Phase 2 (beyond the original Phase 2 roadmap)
 
 ### Active
 
@@ -31,28 +46,12 @@ A club president or youth director opens Stožer and instantly knows: who paid, 
 - [ ] Organization onboarding flow (create club, set identity)
 - [ ] Organization switching for multi-club users
 
-**People:**
-- [ ] Player profiles with permanent identity across seasons
-- [ ] Staff/coach profiles with licenses and documents
-- [ ] Guardian contacts for minor players
-- [ ] Club athlete ID system for payment references
-
-**Teams & Structure:**
-- [ ] Team/selection management (Senior, U19, U17, U15, etc.)
-- [ ] Sport abstraction — football and basketball from day one
-- [ ] Season management with rollover
-
 **Activity:**
 - [ ] Training scheduling (date, time, duration, venue, team, coach)
 - [ ] Training attendance tracking (present, absent, excused, late, unavailable)
 - [ ] Match scheduling (team, opponent, home/away, date, venue, result)
 - [ ] Unified club calendar with filters (team, venue, coach, event type)
 - [ ] Venue/court/field management with conflict detection
-
-**Registration & Contracts:**
-- [ ] Player registration tracking with expiration alerts
-- [ ] Player contract management with expiration alerts
-- [ ] Generic athlete identifier system (federation IDs)
 
 **Youth Finance:**
 - [ ] Membership fee configuration per team/selection
@@ -71,7 +70,6 @@ A club president or youth director opens Stožer and instantly knows: who paid, 
 - [ ] Useful charts where they help (attendance trend, membership collections)
 
 **Documents:**
-- [ ] Player documents (registration, contract, medical, insurance)
 - [ ] Club documents with folder structure
 - [ ] Document expiration alerts
 
@@ -116,6 +114,65 @@ A club president or youth director opens Stožer and instantly knows: who paid, 
 - White-label custom domains
 - Microservices architecture
 
+## Phase 3 Product Context (captured 2026-09-30 — pre-planning, NOT researched or planned)
+
+Accepted product direction for Phase 3 (Scheduling & Attendance), captured so the future
+discussion/research/planning does not lose it. This is context only — it deliberately
+contains NO implementation plan and does NOT choose the data model.
+
+### Sport support
+- Initial supported sports: **Football and Basketball only**.
+- **One sport is configured per organization (club)** — already implemented: `organizations.sport`
+  (TEXT, CHECK in `football`/`basketball`), chosen at onboarding via `create_organization_onboarding`.
+- Teams inherit the org sport automatically (trigger `inherit_team_sport`); player position presets
+  already derive from it (`src/lib/positions.ts` → `positionsForSport`).
+- Users must **NOT** re-select the sport when creating teams, trainings, matches or players —
+  sport-specific behavior derives from the organization's configured sport (e.g. position presets,
+  match behavior, sport-specific labels/rules).
+- UI labels: Football → "Fudbal", Basketball → "Košarka". Never expose raw enum values.
+- Architecture stays extensible to additional sports later, but do **NOT** implement volleyball,
+  handball, tennis, etc. now.
+- Known gap (out of scope for this capture): the org sport is not editable after onboarding, and the
+  `teams.sports.*` i18n labels exist but are unused.
+
+### Unified activity model
+- The club has **ONE unified operational calendar**.
+- Structured activity types at minimum: **Trening** (training), **Utakmica** (match), **Događaj** (event).
+- Training and Match must **NOT** require duplicate manual calendar entries — creating a structured
+  activity IS its calendar representation; editing/rescheduling keeps a single source of truth.
+- Phase 3 research decides the cleanest data model. Do not choose it now.
+
+### Matches
+- Must **not** be football-only; initial sports are Football and Basketball.
+- Common concepts: team, opponent, competition, home/away, date, time, venue/location, result, note.
+- Prefer a **shared sport-aware model**. Do not create parallel `football_matches` / `basketball_matches`
+  unless future research finds an exceptional reason.
+- Out of scope: match statistics, lineups, goals, assists, detailed basketball box scores.
+
+### Training attendance
+- Top Phase 3 priority: a coach opens a training on mobile and marks attendance for the normal team
+  extremely quickly.
+- Success target: complete normal-team attendance in **under ~60 seconds**.
+- Roster derives from the appropriate team / active-season membership — the coach does not manually
+  build a roster per training.
+- **Explicit Phase 3 decision:** the attendance status set. Existing planning lists present, absent,
+  excused, late, **unavailable** — do NOT silently remove "unavailable" before deciding.
+- **Explicit Phase 3 decision:** the attendance percentage formula — treatment of excused and late,
+  the period/season denominator, and players joining/leaving mid-season.
+
+### Venues / conflicts
+- Venue management and conflict detection are already in Phase 3 scope.
+- Expected UX: same venue + overlapping time → a clear **warning**. Do not assume this must hard-block
+  saving; the exact behavior is a Phase 3 decision.
+
+### Calendar tasks / deadlines
+- OPER-01 mentions deadline and task event types. Do **NOT** turn Phase 3 into a task-management system.
+- Phase 3 planning decides whether these remain simple calendar event types. Avoid enterprise
+  project-management functionality.
+
+The Phase 3 roadmap entry, its requirements (OPER-01..OPER-08) and its plan placeholders are unchanged
+by this capture. Phase 3 is **defined but not researched, planned or implemented**.
+
 ## Context
 
 - Solo founder building a comprehensive SaaS product for sports clubs
@@ -123,8 +180,8 @@ A club president or youth director opens Stožer and instantly knows: who paid, 
 - Primary language: Serbian Latin, English fully supported via i18n
 - Users currently manage clubs with Excel, WhatsApp, paper, and bank statements
 - The product must be simple enough for non-technical club administrators
-- Existing code in directory is greenfield — starting fresh
-- Supabase project not yet created
+- Supabase project provisioned and linked; migrations applied (00001–00043 present locally)
+- Never rely on UI hiding for security — server-side + database checks
 
 ## Constraints
 
@@ -150,7 +207,16 @@ A club president or youth director opens Stožer and instantly knows: who paid, 
 | First-team finance deferred | After V1 core operational system is stable | — Pending |
 | PWA over native | Brief requires responsive web, no native Android in V1 | — Pending |
 | shadcn/ui component system | Brief specifies, high quality, customizable | — Pending |
+| Sport is organization-level, one sport per club | Avoid re-selecting sport per team/training/match; presets derive from the org | Implemented — Phase 2 |
+| One unified club calendar; structured activities are their own calendar representation | Avoid duplicate manual entries and calendar drift | Captured for Phase 3 — not yet designed |
+| Matches use a shared sport-aware model | Avoid parallel football/basketball match systems | Captured for Phase 3 — not yet designed |
+| Attendance status set and percentage formula are explicit Phase 3 decisions | Avoid silently dropping "unavailable" or inventing a formula | Captured for Phase 3 — open |
+
+## Phase 3 Next Step
+
+Begin with `/gsd-discuss-phase 3` (produces `03-CONTEXT.md`), then `/gsd-plan-phase 3`.
+Phase 3 is **not** researched, planned or implemented as of 2026-09-30.
 
 ---
 
-*Last updated: 2026-08-26 after initialization*
+*Last updated: 2026-09-30 after Phase 2 completion (Phase 3 product context captured, pre-planning)*

@@ -5,21 +5,28 @@ import { z } from "zod";
 import { hasPermission, requireOrganization } from "@/lib/organization";
 import { createServerClient } from "@/lib/supabase/server";
 import {
+  createEquipmentItem,
   createEquipmentRequest,
   createEquipmentType,
   createTeamEquipment,
   decideEquipmentRequest,
+  deleteEquipmentItem,
+  deleteItemAssignment,
   deleteTeamEquipment,
-  setAthleteSize,
+  issueItemToAthlete,
+  itemUsesNumber,
+  savePlayerSizes,
   setTeamEquipmentRequirements,
   toggleEquipmentType,
-  transitionAthleteItem,
+  transitionItemAssignment,
+  updateEquipmentItem,
   updateTeamEquipment,
 } from "@/lib/equipment";
 import type { EquipmentItemState, EquipmentRequestStatus } from "@/types/database";
 
 const id = z.string().uuid();
 const state = z.enum(["missing", "issued", "returned", "lost", "damaged"]);
+const sizeModeSchema = z.enum(["none", "single", "split"]);
 const requestStatus = z.enum(["requested", "approved", "purchased", "rejected"]);
 
 function text(formData: FormData, name: string): string {
@@ -38,25 +45,12 @@ function refreshEquipment() {
   revalidatePath("/players", "layout");
 }
 
-export async function setAthleteSizeAction(formData: FormData) {
-  const { org, supabase } = await requireEquipmentPermission("equipment.report");
-  const athleteId = id.parse(text(formData, "athlete_id"));
-  const typeId = id.parse(text(formData, "equipment_type_id"));
-  const sizeValue = text(formData, "size_value_custom") || text(formData, "size_value_preset") || null;
-  const sizeValueUpper = text(formData, "size_value_upper_custom") || text(formData, "size_value_upper_preset") || null;
-  const result = await setAthleteSize(supabase, org.organizationId, athleteId, typeId, sizeValue, sizeValueUpper);
-  if ("error" in result) throw new Error(result.error);
-  refreshEquipment();
-}
-
-export async function transitionAthleteItemAction(formData: FormData) {
-  const { org, supabase } = await requireEquipmentPermission("equipment.report");
-  const athleteId = id.parse(text(formData, "athlete_id"));
-  const typeId = id.parse(text(formData, "equipment_type_id"));
-  const nextState = state.parse(text(formData, "state"));
-  const result = await transitionAthleteItem(supabase, org.organizationId, athleteId, typeId, nextState, text(formData, "note") || null);
-  if ("error" in result) throw new Error(result.error);
-  refreshEquipment();
+/** Resolve a size field: custom value wins, "__custom__" sentinel = no size. */
+function sizeValue(formData: FormData, name: string): string | null {
+  const custom = text(formData, `${name}_custom`);
+  if (custom) return custom;
+  const preset = text(formData, `${name}_preset`);
+  return preset && preset !== "__custom__" ? preset : null;
 }
 
 export async function createEquipmentTypeAction(formData: FormData) {
@@ -64,6 +58,122 @@ export async function createEquipmentTypeAction(formData: FormData) {
   const name = z.string().min(1).max(80).parse(text(formData, "name"));
   const sizeModel = z.enum(["single", "upper_lower"]).parse(text(formData, "size_model"));
   const result = await createEquipmentType(supabase, org.organizationId, name, sizeModel, text(formData, "is_club_property") === "true");
+  if ("error" in result) throw new Error(result.error);
+  refreshEquipment();
+}
+
+/**
+ * Save all player clothing-piece sizes in one action. Every submitted piece is
+ * written, including explicit nulls, so clearing a size on the profile really
+ * removes the stored value.
+ */
+export async function savePlayerSizesAction(formData: FormData) {
+  const { org, supabase } = await requireEquipmentPermission("equipment.report");
+  const athleteId = id.parse(text(formData, "athlete_id"));
+  const sizes: Record<string, string | null> = {};
+  const typeIds = new Set<string>();
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("size_") && typeof value === "string") {
+      const rest = key.slice(5);
+      const idx = rest.lastIndexOf("_");
+      if (idx <= 0) continue;
+      const typeId = rest.slice(0, idx);
+      const kind = rest.slice(idx + 1);
+      if (!typeId || !kind) continue;
+      typeIds.add(typeId);
+      if (kind === "custom" && value) sizes[typeId] = value;
+      else if (kind === "preset" && value && value !== "__custom__") sizes[typeId] = value;
+    }
+  }
+  for (const typeId of typeIds) {
+    if (!(typeId in sizes)) sizes[typeId] = null;
+  }
+  const result = await savePlayerSizes(supabase, org.organizationId, athleteId, sizes);
+  if ("error" in result) throw new Error(result.error);
+  revalidatePath(`/players/${athleteId}`);
+}
+
+/** Create a club equipment catalog item with its size mode + numbering. */
+export async function createEquipmentItemAction(formData: FormData) {
+  const { org, supabase } = await requireEquipmentPermission("equipment.manage");
+  const name = z.string().min(1).max(120).parse(text(formData, "name"));
+  const sizeMode = sizeModeSchema.parse(text(formData, "size_mode"));
+  const result = await createEquipmentItem(
+    supabase,
+    org.organizationId,
+    name,
+    sizeMode,
+    text(formData, "has_number") === "true"
+  );
+  if ("error" in result) throw new Error(result.error);
+  refreshEquipment();
+}
+
+/** Update a catalog item (name, size mode, numbering). */
+export async function updateEquipmentItemAction(formData: FormData) {
+  const { org, supabase } = await requireEquipmentPermission("equipment.manage");
+  const itemId = id.parse(text(formData, "item_id"));
+  const name = z.string().min(1).max(120).parse(text(formData, "name"));
+  const sizeMode = sizeModeSchema.parse(text(formData, "size_mode"));
+  const result = await updateEquipmentItem(supabase, org.organizationId, itemId, {
+    name,
+    sizeMode,
+    hasNumber: text(formData, "has_number") === "true",
+  });
+  if ("error" in result) throw new Error(result.error);
+  refreshEquipment();
+}
+
+export async function deleteEquipmentItemAction(formData: FormData) {
+  const { org, supabase } = await requireEquipmentPermission("equipment.manage");
+  const itemId = id.parse(text(formData, "item_id"));
+  const result = await deleteEquipmentItem(supabase, org.organizationId, itemId);
+  // Returned (not thrown) so the guarded message reaches the user verbatim.
+  if ("error" in result) return { error: result.error };
+  refreshEquipment();
+  return { ok: true };
+}
+
+/** Issue a catalog item to a player (sizes chosen at issue time). */
+export async function issueItemAction(formData: FormData) {
+  const { org, supabase } = await requireEquipmentPermission("equipment.report");
+  const athleteId = id.parse(text(formData, "athlete_id"));
+  const itemId = id.parse(text(formData, "item_id"));
+  const sizeTop = sizeValue(formData, "size_top");
+  const sizeBottom = sizeValue(formData, "size_bottom");
+  const note = text(formData, "note") || null;
+  const number = (await itemUsesNumber(supabase, org.organizationId, itemId))
+    ? text(formData, "number") || null
+    : null;
+  const result = await issueItemToAthlete(
+    supabase,
+    org.organizationId,
+    athleteId,
+    itemId,
+    sizeTop,
+    sizeBottom,
+    note,
+    number
+  );
+  if ("error" in result) throw new Error(result.error);
+  refreshEquipment();
+}
+
+export async function transitionItemAction(formData: FormData) {
+  const { org, supabase } = await requireEquipmentPermission("equipment.report");
+  const athleteId = id.parse(text(formData, "athlete_id"));
+  const itemId = id.parse(text(formData, "item_id"));
+  const nextState = state.parse(text(formData, "state"));
+  const result = await transitionItemAssignment(supabase, org.organizationId, athleteId, itemId, nextState, text(formData, "note") || null);
+  if ("error" in result) throw new Error(result.error);
+  refreshEquipment();
+}
+
+export async function deleteItemAssignmentAction(formData: FormData) {
+  const { org, supabase } = await requireEquipmentPermission("equipment.manage");
+  const athleteId = id.parse(text(formData, "athlete_id"));
+  const itemId = id.parse(text(formData, "item_id"));
+  const result = await deleteItemAssignment(supabase, org.organizationId, athleteId, itemId);
   if ("error" in result) throw new Error(result.error);
   refreshEquipment();
 }
@@ -80,8 +190,8 @@ export async function toggleEquipmentTypeAction(formData: FormData) {
 export async function saveTeamRequirementsAction(formData: FormData) {
   const { org, supabase } = await requireEquipmentPermission("equipment.manage");
   const teamId = id.parse(text(formData, "team_id"));
-  const typeIds = formData.getAll("equipment_type_id").filter((value): value is string => typeof value === "string").map((value) => id.parse(value));
-  const result = await setTeamEquipmentRequirements(supabase, org.organizationId, teamId, typeIds);
+  const itemIds = formData.getAll("item_id").filter((value): value is string => typeof value === "string").map((value) => id.parse(value));
+  const result = await setTeamEquipmentRequirements(supabase, org.organizationId, teamId, itemIds);
   if ("error" in result) throw new Error(result.error);
   refreshEquipment();
 }

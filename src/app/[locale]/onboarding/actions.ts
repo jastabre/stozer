@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
+import { defaultCurrencyForCountry } from "@/lib/currency";
 import { onboardingSchema, type OnboardingInput } from "@/schemas/onboarding";
 import type { Database } from "@/types/database";
 
@@ -56,7 +57,8 @@ export async function createOrganization(data: OnboardingInput) {
       p_sport: parsed.data.sport,
       p_country: parsed.data.country,
       p_language: parsed.data.language,
-      p_currency: parsed.data.currency,
+      // V1: one club currency; default from the country (RS -> RSD, else EUR).
+      p_currency: defaultCurrencyForCountry(parsed.data.country),
       p_timezone: parsed.data.timezone,
     }
   );

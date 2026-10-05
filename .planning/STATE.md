@@ -1,35 +1,35 @@
 ---
-gsd_state_version: 1.0
-current_phase: 02
-current_phase_name: Club & People
+gsd_state_version: "1.0"
+current_phase: 03
+current_phase_name: Scheduling & Attendance
 status: executing
-stopped_at: Completed 02-07-PLAN.md
-last_updated: "2026-08-28T10:39:31.476Z"
-state_head: 4083b5759a2f296f84ab982df2f8be19f194807f
+stopped_at: Phase 02 complete (manual UAT passed 2026-09-30); ready to discuss/plan Phase 3
+last_updated: "2026-10-05T16:52:35.379Z"
+state_head: 7be865536b22ea004716d91486fe70ae0ec03606
 progress:
   total_phases: 7
-  completed_phases: 0
-  total_plans: 9
-  completed_plans: 8
-  percent: 0
+  completed_phases: 1
+  total_plans: 14
+  completed_plans: 9
+  percent: 14
 ---
 
 # Project State: STOŽER
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-26)
+See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** A club president or youth director opens Stožer and instantly knows: who paid, who owes, who's registered, who's training today, what needs attention — without calling three people or searching through files.
 
-**Current focus:** Phase 02 — Club & People
+**Current focus:** Phase 3 — Scheduling & Attendance (discuss first; not yet researched/planned)
 
 ## Current Position
 
-**Phase:** 02 (Club & People) — EXECUTING
-**Plan:** 1 of 8
-**Status:** Executing Phase 02
-**Progress:** ████░░░░░░ [░░░░░░░░░░] 0% (Phase 1 of 7 complete)
+**Phase:** 03 (Scheduling & Attendance) — READY TO EXECUTE
+**Plan:** Not started
+**Status:** Ready to execute
+**Progress:** [████████████████████] 9/9 plans ([█░░░░░░░░░] 14%) — Phase 02 complete
 
 ## Performance Metrics
 
@@ -91,6 +91,13 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 - [Phase 2]: 02-07 uses migration 00009_equipment.sql because 00008_import_jobs.sql is owned by 02-06.
 - [Phase 2]: Equipment remains lightweight: quantities and explicit states without serial numbers, warehouses, procurement, or accounting.
 - [Phase 2]: Equipment foreign keys and action-side validation enforce organization-consistent team, athlete, staff, season, and equipment-type references.
+- [Phase 2]: Automated gates verified green: typecheck PASS, lint PASS (0 errors), vitest 403/403 tests PASS — Verified baseline of the actual working tree established 2026-09-28
+- [Phase 2]: Application-wide loading and pending states (former recurring blocker) are IMPLEMENTED in code: MutationForm, FormSubmitButton, ConfirmDeleteButton, useMutationFeedback, route loading.tsx — Code inspection confirmed all previously-flagged mutation forms have pending feedback
+- [Phase 2]: Scope drift: first-team finance (contracts, payments, obligations, reversals, adjustments), club branding and logo, org currency, expanded role and permission matrix, users and access, staff functions plus athlete link, equipment and settings are implemented in code but absent from the old Phase 2 roadmap — Reality reconciliation. Do not remove the implementation and do not redesign the roadmap in this step
+- [Phase 2]: Remote migrations verified: npx supabase migration list --linked shows Local and Remote match for 00001-00036, so migrations 00021-00036 are applied on the linked Supabase project with no missing or mismatched entries — Verified 2026-09-28. The migrations-unverified blocker is resolved
+- [Phase 2]: 2026-09-30: Phase 2 (Club & People) closed — the user confirmed manual UAT PASSED on 2026-09-30. 02-UAT.md records MANUAL acceptance only (no automated UAT/e2e suite exists); 02-VERIFICATION.md canonicalized human_needed → passed after UAT
+- [Phase 2]: 2026-09-30: Phase 2 traceability reconciled — STRC-06, STRC-07, REG-04, REG-06, REG-07, REG-09 were Pending in REQUIREMENTS.md although implemented in code; verified against actual code/migrations and flipped to Complete
+- [Phase 3]: 2026-09-30: Phase 3 pre-planning product context captured in PROJECT.md ("Phase 3 Product Context") — sport support, unified activity calendar, sport-aware matches, training attendance, venues/conflicts, calendar tasks. This is context only: Phase 3 is NOT researched or planned yet
 
 ### Lessons Learned
 
@@ -101,15 +108,15 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 ### Blockers
 
-(None)
+- None. Phase 2 closed 2026-09-30 (manual UAT passed; all open broken-window entries resolved).
 
 ## Session Continuity
 
-**Stopped at:** Completed 02-07-PLAN.md
+**Stopped at:** Phase 02 complete (manual UAT passed 2026-09-30), ready to discuss/plan Phase 3
 
-**Last session:** 2026-08-27T22:34:00.567Z
+**Last session:** 2026-09-30T19:09:16.289Z
 **Resume file:** None
-**Next action:** Run `/gsd-execute-phase 02-07` to continue the sequential Club & People plans
+**Next action:** Begin Phase 3 discussion with `/gsd-discuss-phase 3` (then `/gsd-plan-phase 3`). Do NOT start Phase 3 research or planning automatically.
 
 ---
-*Last updated: 2026-08-27 after Phase 2 discuss-phase*
+*Last updated: 2026-09-30 after Phase 2 completion*

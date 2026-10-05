@@ -5,20 +5,21 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 import { requireOrganization, hasPermission } from "@/lib/organization";
+import { getActiveSeason } from "@/lib/club-data";
 
 // Zod validation of untrusted client dates/ids (T-02-03-01): valid_until must
 // be after valid_from, required as YYYY-MM-DD. Unknown fields are stripped.
+// The daily form carries only the structured competition-registration facts:
+// the federative/registration ID, the note and the two dates. Season is chosen
+// automatically (active season) and documents are tracked separately, so neither
+// is a form field; `federation`/`season_id`/`document_id` are never sent here and
+// are preserved on edit (see saveRegistration).
 const registrationSchema = z
   .object({
     id: z.string().uuid().optional(),
     athlete_id: z.string().uuid(),
-    federation: z.string().max(100).optional(),
     identifier: z.string().max(100).optional(),
-    season_id: z.string().uuid().nullable().optional(),
-    document_id: z.preprocess(
-      (value) => (value === "" ? null : value),
-      z.string().uuid().nullable().optional()
-    ),
+    note: z.string().max(500).optional(),
     valid_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum mora biti YYYY-MM-DD"),
     valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Datum mora biti YYYY-MM-DD"),
   })
@@ -28,10 +29,12 @@ const registrationSchema = z
   });
 
 /**
- * Create (or update, when an `id` is present) a registration record for an
- * athlete. Guards: registrations.manage permission + org from requireOrganization.
- * document_id linkage is intentionally left writable but not exposed here —
- * the documents dropdown/materializes in 02-05 (W1 cross-plan guard).
+ * Create (or update, when an `id` is present) a competition-registration record
+ * for an athlete. Guards: registrations.manage permission + org from
+ * requireOrganization. A new registration is automatically bound to the club's
+ * active season; an edit only touches the fields the form owns (identifier,
+ * note, dates) so the season, the legacy federation/system label and any linked
+ * document are preserved untouched.
  */
 export async function saveRegistration(formData: FormData) {
   const org = await requireOrganization();
@@ -48,21 +51,9 @@ export async function saveRegistration(formData: FormData) {
   const { id, ...fields } = parsed.data;
 
   const supabase = await createServerClient();
-  if (fields.document_id) {
-    const { data: document, error: documentError } = await supabase
-      .from("documents")
-      .select("id")
-      .eq("id", fields.document_id)
-      .eq("organization_id", org.organizationId)
-      .eq("owner_type", "athlete")
-      .eq("owner_id", athleteId)
-      .eq("doc_type", "registration")
-      .maybeSingle();
-    if (documentError || !document) throw new Error("Dokument registracije nije pronađen");
-  }
-  // WR-05: verify the athlete and (when set) the season belong to this org
-  // before inserting/updating — cross-org parent references are rejected by
-  // the composite org FKs (00011); validate here for a clear message.
+
+  // WR-05: verify the athlete belongs to this org — cross-org parent references
+  // are rejected by the composite org FKs (00011); validate for a clear message.
   const { data: athlete, error: athleteError } = await supabase
     .from("athletes")
     .select("id")
@@ -71,45 +62,35 @@ export async function saveRegistration(formData: FormData) {
     .maybeSingle();
   if (athleteError || !athlete) throw new Error("Igrač nije pronađen u organizaciji");
 
-  const seasonValue =
-    fields.season_id && fields.season_id.trim() !== ""
-      ? fields.season_id
-      : null;
-  if (seasonValue) {
-    const { data: season, error: seasonError } = await supabase
-      .from("seasons")
-      .select("id")
-      .eq("id", seasonValue)
-      .eq("organization_id", org.organizationId)
-      .maybeSingle();
-    if (seasonError || !season) throw new Error("Sezona nije pronađena u organizaciji");
-  }
-
   if (id) {
     const { error } = await supabase
       .from("registrations")
       .update({
-        federation: fields.federation ?? null,
         identifier: fields.identifier ?? null,
-        season_id: seasonValue,
+        note: fields.note ?? null,
         valid_from: fields.valid_from,
         valid_until: fields.valid_until,
-        document_id: fields.document_id ?? null,
       })
       .eq("id", id)
       .eq("organization_id", org.organizationId)
       .eq("athlete_id", athleteId);
     if (error) throw new Error("Greška pri čuvanju registracije: " + error.message);
   } else {
+    // Bind a new registration to the active season automatically (D-09). No
+    // active season means the flow shouldn't have offered the form (guarded in
+    // the page), but fail clearly rather than writing an orphan.
+    const activeSeason = await getActiveSeason(supabase, org.organizationId);
+    if (!activeSeason) {
+      throw new Error("Nema aktivne sezone. Započnite sezonu pre unosa registracije.");
+    }
     const { error } = await supabase.from("registrations").insert({
       organization_id: org.organizationId,
       athlete_id: athleteId,
-      season_id: seasonValue,
-      federation: fields.federation ?? null,
+      season_id: activeSeason.id,
       identifier: fields.identifier ?? null,
+      note: fields.note ?? null,
       valid_from: fields.valid_from,
       valid_until: fields.valid_until,
-      document_id: fields.document_id ?? null,
     });
     if (error) throw new Error("Greška pri upisu registracije: " + error.message);
   }
